@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Engineer session 4 of 8. The linkage attack run on 32,561 real census rows: an outsider joins 1,000 known people to the release, single-row matches fall from 175 to 0 down the ladder, expected re-identifications fall from 272.5 to 4.4 and never reach 0, and one undeclared column takes single matches from 0 back to 22.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="The linkage attack - learn privacy engineering with phoebe">
+<meta property="og:description" content="Engineer session 4 of 8. Play the outsider: join 1,000 known people to the release and count who is named. 175 single matches at rung 1, 0 at rung 4, 22 again when workclass slips out undeclared.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/courses/b4-the-linkage-attack.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The linkage attack - learn privacy engineering with phoebe">
+<meta name="twitter:description" content="Engineer session 4 of 8. The join, 1 / class size, the ladder from 272.5 to 4.4 expected re-identifications, and the forgotten column.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Engineer session 4 · The linkage attack - learn privacy engineering with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=2">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-privacy-engineering-with-phoebe</a> / Engineer session 4 of 8</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Privacy Engineering with Phoebe · Engineer session 4 of 8</div>
+    <h1>The linkage <span class="accent">attack</span></h1>
+    <p class="sub">Every measure so far has been a property of the release: k, l, t, the unique share. Tonight you stop measuring the file and attack it. An outsider holds a table of real people with six facts each, generalises it the way the release did, joins on the shared key and counts who comes back alone. It is the test closest to what actually happens to a released file, and it is the one that catches the column nobody declared.</p>
+    <div class="chip-row">
+      <span class="chip level">🟡 Engineer</span>
+      <span class="chip audience">Data engineers and analysts who prepare a release</span>
+      <span class="chip audience">The in-page widget, pandas optional</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · The join, the risk, two releases</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: play the outsider</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where we start</h2>
+    </div>
+    <p class="lede">Ravi Menon, Brightwater's data engineer, has a rung 4 release on his screen: five coarsened columns, every class of at least 5, 725 rows suppressed. Engineer sessions 2 and 3 measured it from the inside. Tonight Lim Su-Ann, the data protection officer, asks the outside question: if someone already knows a thousand people in this file, how many of them can they name? Brightwater and its people are constructed. The rows are real: 32,561 people from the UCI Adult extract of the 1994 US Census, and the outsider's 1,000 are real rows from that file, chosen by a fixed seed, so the widget prints the same numbers every time.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">★ Build-along = everyone works it through</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> The linkage attack run by hand on every rung of the ladder, with single-row matches and expected re-identifications recorded for each; the reason the expected number never reaches zero while anyone is published; a pandas join you can point at your own release; and one break-test line for the release record that shows what happens when a column slips out undeclared.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers the join</span>
+      <h2>The outsider joins on the release's own key</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">The attacker does not need anything clever. They hold a table of people they know: name, plus age, sex, race, marital status, education and country of birth, exact. They read the release's documentation, generalise their own table to the same levels, and join on the six generalised columns. Each person they know lands in one class of the release. If that class has c rows, they have a 1 in c chance of pointing at the right one. When c is 1, the join is a name.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 352" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Left, the outsider's table of three known people, A, B and C, each with exact facts and the same facts generalised to the release's levels. Right, the released table, rung 3, drawn as the pile, with three classes inside it: a class of 1 in plum, a class of 3 and a class of 12. Join lines run from A to the class of 1, chance 1 in 1; from C to the class of 3, chance 1 in 3; from B to the class of 12, chance 1 in 12. Constructed rows illustrating the mechanism.">
+        <defs>
+          <filter id="b4aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="31" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b4aHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b4aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b4aH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b4aL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b4aS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b4aW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b4aX { font: 400 11px Inter, sans-serif; fill: #FFFFFF; }
+          .b4aA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .b4aN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b4aH" x="30" y="28">GENERALISE THE KNOWN PEOPLE THE SAME WAY, THEN JOIN ON THE SHARED KEY</text>
+
+        <g filter="url(#b4aSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="50" width="290" height="250" rx="12" transform="rotate(-0.5 175 175)" fill="#FFFFFF"/>
+          <rect x="560" y="50" width="290" height="250" rx="12" transform="rotate(0.5 705 175)" fill="url(#b4aHc)"/>
+          <path d="M44 150 L306 150 M44 210 L306 210" stroke="#57553F" stroke-width="1.4"/>
+          <rect x="578" y="98" width="254" height="48" rx="8" transform="rotate(-1.2 705 122)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="578" y="166" width="254" height="48" rx="8" transform="rotate(0.9 705 190)" fill="#FFFFFF"/>
+          <rect x="578" y="234" width="254" height="48" rx="8" transform="rotate(-0.7 705 258)" fill="#FFFFFF"/>
+          <path d="M324 126 C 430 126, 470 120, 572 120" stroke="#8E2A4F" stroke-width="2.4" marker-end="url(#b4aAr)"/>
+          <path d="M324 246 C 430 246, 470 192, 572 190" marker-end="url(#b4aAr)"/>
+          <path d="M324 186 C 430 186, 470 258, 572 258" stroke="#57553F" marker-end="url(#b4aAr)"/>
+          <!-- doodle: a key between the tables -->
+          <circle cx="430" cy="300" r="11" stroke="#4A4700"/>
+          <path d="M441 300 L478 300 M466 300 L466 310 M474 300 L474 308" stroke="#4A4700"/>
+        </g>
+
+        <rect x="572" y="60" width="266" height="26" rx="6" fill="#FFFFFF"/>
+
+        <text class="b4aH" x="46" y="76">OUTSIDER'S TABLE</text>
+        <text class="b4aS" x="46" y="94">1,000 real people, six exact facts each</text>
+        <text class="b4aL" x="46" y="122">A · 47, female, born in India</text>
+        <text class="b4aS" x="46" y="140">becomes 40-49 · Female · Outside US</text>
+        <text class="b4aL" x="46" y="182">B · 52, male, HS-grad</text>
+        <text class="b4aS" x="46" y="200">becomes 50-59 · Male · High school</text>
+        <text class="b4aL" x="46" y="242">C · 34, male, Bachelors</text>
+        <text class="b4aS" x="46" y="260">becomes 30-39 · Male · Bachelors</text>
+        <text class="b4aS" x="46" y="286">six columns each; three shown</text>
+
+        <text class="b4aA" x="350" y="70">JOIN ON THE GENERALISED KEY</text>
+
+        <text class="b4aH" x="582" y="78">THE RELEASE, RUNG 3</text>
+        <text class="b4aW" x="592" y="118">class of 1 · chance 1 / 1</text>
+        <text class="b4aX" x="592" y="136">a single-row match: A is named</text>
+        <text class="b4aL" x="592" y="186">class of 3 · chance 1 / 3</text>
+        <text class="b4aS" x="592" y="204">C could be any of three rows</text>
+        <text class="b4aL" x="592" y="254">class of 12 · chance 1 / 12</text>
+        <text class="b4aS" x="592" y="272">B hides among twelve</text>
+
+        <text class="b4aN" x="30" y="332">Constructed rows showing the mechanism. On the real rung 3 release, 6 of the 1,000 land in a class of 1.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the attack is a join; the only number that matters is the size of the class each known person lands in</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What the outsider holds, and why it is realistic<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>A table, not a hunch.</strong> A voter roll, a staff directory, a membership list, a scraped set of public profiles. Each row is a named person with a few ordinary facts. The attack in the widget gives the outsider 1,000 real rows from the file with all six facts exact: a strong outsider, and a fair one to test against, because a release that survives them survives weaker ones.</p>
+        <p><strong>The release tells them how to generalise.</strong> A release has to document its bands and groups, or the recipient cannot use it. "Age in 10-year bands, education in five levels" is a recipe the outsider follows on their own table in one line of code. Generalisation does not hide the mapping; it only makes the classes bigger.</p>
+        <p><strong>The target is in the file.</strong> The outsider's people are rows of the release, so the class they land in always contains them. That is the prosecutor case: the attacker knows the person is in the data and asks which row is theirs. The chance of picking the right row is 1 / c, and a class of 1 makes it certain.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Identity disclosure, and where it sits in PDPC's steps<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>PDPC's Guide to Basic Anonymisation (2022) works in five steps: know your data, de-identify, apply techniques, compute your risk, manage the re-identification and disclosure risks. Step 5 names identity disclosure, a record tied to a person, beside attribute and inference disclosure. The linkage attack is the most direct way to compute identity disclosure for a specific outsider: count the people who come back alone. Whether a file that passes is still personal data is a legal question; <a href="https://phoebefu6.github.io/learn-pdpa-dnc-with-phoebe/">PDPA and DNC ↗</a> owns it. This is engineering, not legal advice.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Twenty dollars and a join.</strong> The Massachusetts Group Insurance Commission held hospital records for about 135,000 state employees and their families, with names removed, and gave a copy to researchers. Latanya Sweeney bought the Cambridge voter list for twenty dollars. Six people on it had the governor's birth date, three of them were men, and only one lived in his 5-digit ZIP code. Joining the two tables on ZIP, birth date and sex returned William Weld's records: a class of 1, reached with exactly the join on this page (Sweeney 2002).</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers prosecutor risk and the ladder</span>
+      <h2>Count the matches rung by rung</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Run the same 1,000 known people against each rung of the ladder and read two numbers. Single-row matches count the people whose class has exactly one row: named outright. Expected re-identifications add up 1 / class size over all 1,000: the number of people a guesser would name correctly on average if they picked one row from each class. The first number reaches zero. The second does not.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn line chart across the six rungs of the ladder. Single-row matches, an olive line: 175, 85, 6, 0, 0, 0. Expected re-identifications, a plum line: 272.5, 129.6, 29.0, 16.7, 10.8, 4.4, flattening near the axis but never touching it. A table under the chart repeats both series and adds occupation revealed: 201, 97, 10, 0, 0, 0.">
+        <defs>
+          <filter id="b4bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="37" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b4bHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b4bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b4bH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b4bL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b4bS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b4bV { font: 800 16px Inter, sans-serif; fill: #4A4700; }
+          .b4bB { font: 800 11px Inter, sans-serif; fill: #5C1A33; }
+          .b4bP { font: 800 16px Inter, sans-serif; fill: #5C1A33; }
+          .b4bA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .b4bN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b4bH" x="30" y="28">THE SAME 1,000 KNOWN PEOPLE, JOINED AGAINST EACH RUNG OF THE LADDER</text>
+
+        <g filter="url(#b4bSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M80 290 L820 290" stroke="#57553F" stroke-width="1.4"/>
+          <path d="M80 290 L80 72" stroke="#57553F" stroke-width="1.4"/>
+          <path d="M520 46 L552 46" stroke="#8E2A4F" stroke-width="3"/>
+          <path d="M520 64 L552 64" stroke="#7A7600" stroke-width="3"/>
+          <path d="M120 99 L250 199 L380 270 L510 278 L640 282 L770 287" stroke="#8E2A4F" stroke-width="3"/>
+          <path d="M120 168 L250 231 L380 286 L510 290 L640 290 L770 290" stroke="#7A7600" stroke-width="3"/>
+          <circle cx="120" cy="99" r="4" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <circle cx="250" cy="199" r="4" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <circle cx="770" cy="287" r="4" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <circle cx="120" cy="168" r="4" fill="#7A7600" stroke="#7A7600"/>
+          <circle cx="250" cy="231" r="4" fill="#7A7600" stroke="#7A7600"/>
+          <!-- doodle: a small arrow pointing at the tail that never lands -->
+          <path d="M742 238 L764 276" stroke="#5C1A33" marker-end="url(#b4bAr)"/>
+        </g>
+
+        <text class="b4bA" x="52" y="294">0</text>
+        <text class="b4bA" x="46" y="82">300</text>
+        <text class="b4bS" x="560" y="50">expected re-identifications</text>
+        <text class="b4bS" x="560" y="68">single-row matches</text>
+
+        <text class="b4bP" x="132" y="96">272.5</text>
+        <text class="b4bV" x="132" y="166">175</text>
+        <text class="b4bP" x="262" y="194">129.6</text>
+        <text class="b4bV" x="258" y="268">85</text>
+        <text class="b4bB" x="580" y="230">4.4 at rung 6: small, never 0</text>
+
+        <text class="b4bL" x="120" y="314" text-anchor="middle">1 · exact</text>
+        <text class="b4bL" x="250" y="314" text-anchor="middle">2 · age 10y</text>
+        <text class="b4bL" x="380" y="314" text-anchor="middle">3 · coarsen five</text>
+        <text class="b4bL" x="510" y="314" text-anchor="middle">4 · k 5</text>
+        <text class="b4bL" x="640" y="314" text-anchor="middle">5 · k 10</text>
+        <text class="b4bL" x="770" y="314" text-anchor="middle">6 · heavy k 10</text>
+
+        <text class="b4bS" x="30" y="340">single</text>
+        <text class="b4bA" x="120" y="340" text-anchor="middle">175</text>
+        <text class="b4bA" x="250" y="340" text-anchor="middle">85</text>
+        <text class="b4bA" x="380" y="340" text-anchor="middle">6</text>
+        <text class="b4bA" x="510" y="340" text-anchor="middle">0</text>
+        <text class="b4bA" x="640" y="340" text-anchor="middle">0</text>
+        <text class="b4bA" x="770" y="340" text-anchor="middle">0</text>
+
+        <text class="b4bS" x="30" y="360">expected</text>
+        <text class="b4bB" x="120" y="360" text-anchor="middle">272.5</text>
+        <text class="b4bB" x="250" y="360" text-anchor="middle">129.6</text>
+        <text class="b4bB" x="380" y="360" text-anchor="middle">29.0</text>
+        <text class="b4bB" x="510" y="360" text-anchor="middle">16.7</text>
+        <text class="b4bB" x="640" y="360" text-anchor="middle">10.8</text>
+        <text class="b4bB" x="770" y="360" text-anchor="middle">4.4</text>
+
+        <text class="b4bS" x="30" y="380">job read</text>
+        <text class="b4bA" x="120" y="380" text-anchor="middle">201</text>
+        <text class="b4bA" x="250" y="380" text-anchor="middle">97</text>
+        <text class="b4bA" x="380" y="380" text-anchor="middle">10</text>
+        <text class="b4bA" x="510" y="380" text-anchor="middle">0</text>
+        <text class="b4bA" x="640" y="380" text-anchor="middle">0</text>
+        <text class="b4bA" x="770" y="380" text-anchor="middle">0</text>
+
+        <text class="b4bN" x="30" y="404">Computed on the real rows. Job read = occupation revealed because everyone in the class shares it.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - suppression drives single matches to zero at rung 4; the expected count keeps falling and never lands</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Reading the two numbers<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Single-row matches: 175, 85, 6, 0, 0, 0.</strong> At rung 1, pseudonymised only, 175 of the 1,000 known people are alone in the release and named outright. Banding age halves it to 85. Coarsening five columns leaves 6. From rung 4 on, every class under k is suppressed, so no published class has one row and the count is 0 by construction.</p>
+        <p><strong>Expected re-identifications: 272.5, 129.6, 29.0, 16.7, 10.8, 4.4.</strong> Each known person contributes 1 / c, the chance a guesser picks their row. A person in a class of 1 adds 1; a class of 5 adds 0.2; a class of 10 adds 0.1. Adding up the 1,000 gives the number of people the outsider would name correctly on average. At rung 1 it is higher than the single count because people in classes of 2 and 3 add up too.</p>
+        <p><strong>Occupation revealed: 201, 97, 10, 0.</strong> The attack does not need a single match to hurt. If everyone in the class shares an occupation, the outsider learns the job without knowing which row is the person: the homogeneity problem of Engineer session 3, now counted for real targets.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Why the expected count never reaches zero<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Every published person adds something.</strong> A known person whose row is published sits in a class of some size c, and adds 1 / c. With k of 10 each adds at most 0.1, which is why rung 5 and rung 6 are small, but a positive number times any number of people is never zero. The only people who add nothing are the suppressed ones, whose rows are not in the file.</p>
+        <p><strong>So zero means an empty release.</strong> To drive expected re-identifications to 0 you would suppress every row. That is the honest shape of the problem: generalisation and suppression lower the risk and never remove it. A release record states the residual number and who accepted it, rather than claiming none.</p>
+        <p><strong>The bound is simple.</strong> With k achieved, the expected count can be at most the number of published targets divided by k. At rung 6, k 10, that bound is at most 100 and the real number is 4.4, because most of the 1,000 sit in classes much bigger than 10.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Netflix, with IMDb as the outsider's table.</strong> The Netflix Prize data held ratings from about 500,000 subscribers with names replaced. Narayanan and Shmatikov used public IMDb reviews as auxiliary data and identified the Netflix records of known users. Their numbers: with 8 movie ratings, of which 2 may be wrong, and dates within 14 days, 99% of records could be uniquely identified, and the auxiliary information needed was 2 to 8 ratings per user. Movie ratings were never declared a quasi-identifier. The join did not care.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers the forgotten column and two releases</span>
+      <h2>A column nobody declared splits the classes again</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">k is computed over the columns you declare as quasi-identifiers. If a column is published but never declared, k is computed over the wrong key, and the printed k is a statement about a file the outsider is not attacking. Rung 4 with workclass published exact and undeclared still prints k = 5. The outsider joins on seven columns, not six, and single-row matches go from 0 back to 22.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Top, two release boxes. Release 1, the rung 4 file: age band, sex, race, marital, education, country, occupation, with six declared quasi-identifiers and k printed 5. Release 2, three months later: age band, sex, workclass, hours. Both point to a hatched pill: same people, shared columns. Bottom, one class of 5 from release 1 splits by workclass into a class of 3 and two classes of 1, the two classes of 1 in plum. Constructed illustration; the computed break result is in the note.">
+        <defs>
+          <filter id="b4cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="41" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b4cHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b4cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b4cH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b4cL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b4cS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b4cW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b4cX { font: 400 11px Inter, sans-serif; fill: #FFFFFF; }
+          .b4cA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .b4cN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b4cH" x="30" y="28">TWO RELEASES THAT SHARE PEOPLE BEHAVE LIKE ONE RELEASE WITH MORE COLUMNS</text>
+
+        <g filter="url(#b4cSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="48" width="380" height="112" rx="12" transform="rotate(-0.5 220 104)" fill="#FFFFFF"/>
+          <rect x="470" y="48" width="380" height="112" rx="12" transform="rotate(0.5 660 104)" fill="#F7F6E4" stroke="#7A7600"/>
+          <rect x="330" y="168" width="220" height="32" rx="14" transform="rotate(-0.6 440 184)" fill="url(#b4cHc)"/>
+          <path d="M220 164 L324 182" marker-end="url(#b4cAr)"/>
+          <path d="M660 164 L556 182" marker-end="url(#b4cAr)"/>
+          <rect x="30" y="226" width="220" height="70" rx="12" transform="rotate(-0.8 140 261)" fill="#FFFFFF"/>
+          <path d="M256 261 L292 261" marker-end="url(#b4cAr)"/>
+          <rect x="300" y="226" width="160" height="70" rx="10" transform="rotate(1.2 380 261)" fill="#FFFFFF"/>
+          <rect x="490" y="226" width="160" height="70" rx="10" transform="rotate(-1.5 570 261)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="680" y="226" width="170" height="70" rx="10" transform="rotate(1.8 765 261)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <!-- doodle: scissors on the split -->
+          <circle cx="270" cy="236" r="5" stroke="#4A4700"/>
+          <circle cx="270" cy="250" r="5" stroke="#4A4700"/>
+          <path d="M274 239 L288 247 M274 247 L288 239" stroke="#4A4700"/>
+        </g>
+
+        <rect x="345" y="175" width="190" height="18" rx="4" fill="#FFFFFF"/>
+
+        <text class="b4cH" x="48" y="74">RELEASE 1 · THE RUNG 4 FILE</text>
+        <text class="b4cL" x="48" y="98">age band · sex · race · marital</text>
+        <text class="b4cL" x="48" y="118">education · country · occupation</text>
+        <text class="b4cS" x="48" y="140">six declared quasi-identifiers · k printed 5</text>
+
+        <text class="b4cH" x="488" y="74">RELEASE 2 · THREE MONTHS LATER</text>
+        <text class="b4cL" x="488" y="98">age band · sex · workclass · hours</text>
+        <text class="b4cS" x="488" y="120">asked for by a second partner</text>
+        <text class="b4cS" x="488" y="140">nobody re-ran release 1's check</text>
+
+        <text class="b4cS" x="352" y="188">same people, shared columns</text>
+
+        <text class="b4cA" x="300" y="216">the same 5 people, split by workclass</text>
+
+        <text class="b4cL" x="46" y="254">one class of 5</text>
+        <text class="b4cS" x="46" y="274">k = 5 on six columns</text>
+
+        <text class="b4cL" x="314" y="254">Private · 3</text>
+        <text class="b4cS" x="314" y="274">chance 1 / 3</text>
+        <text class="b4cW" x="504" y="254">Self-employed · 1</text>
+        <text class="b4cX" x="504" y="274">a single match</text>
+        <text class="b4cW" x="694" y="254">Government · 1</text>
+        <text class="b4cX" x="694" y="274">a single match</text>
+
+        <text class="b4cN" x="30" y="324">Computed, rung 4 plus workclass undeclared: k still prints 5; single matches 0 to 22; expected 16.7 to 73.5.</text>
+        <text class="b4cN" x="30" y="344">The two-release join and the split of one class are a constructed illustration of how that happens.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - k is only as true as the list of columns it was computed over</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The break, in four numbers<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>k still prints 5.</strong> The check ran on the six declared columns, and on those six every published class still has at least 5 rows. Nothing in the k calculation knows workclass is in the file.</p>
+        <p><strong>Single-row matches 0 to 22.</strong> The outsider knows workclass too, so they join on seven columns. Classes of 5 split into smaller classes, and 22 of the 1,000 known people come back alone.</p>
+        <p><strong>Expected re-identifications 16.7 to 73.5, occupation revealed 0 to 89.</strong> The smaller classes add more 1 / c each, and many of them now hold one occupation. Workclass is not a sensitive column and not an exotic one: on the six exact columns it takes the share of people alone from 17.18% to 27.78%.</p>
+        <p><strong>The fix is a declaration, not a technique.</strong> Every column that leaves the building goes into the quasi-identifier list unless someone writes down why no outsider could know it. Then k, l, t and the attack are all computed over the key the outsider will actually use.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Two releases of the same people<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A constructed explanation, because no source on this page measured it. Suppose release 1 is the rung 4 file and release 2, of the same people, carries age band, sex, workclass and hours. Neither release has to be weak on its own. An outsider who holds both looks up a known person in each, keeps only the rows consistent with both, and in effect attacks one release that declares the union of their columns. The forgotten-column break is the closest computed stand-in: it is rung 4 with one more column the first check never saw.</p>
+        <p>How well two real releases join depends on whether rows can be matched across them, which depends on shared columns, record order and what else was published, so the computed 22 is an illustration of the direction, not a measurement of a two-release case. The engineering rule does not depend on the exact number: a release is checked against everything already released about the same people, not alone.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Constructed Brightwater example: the second partner.</strong> Three months after the rung 4 file went out, a second university team asks Ravi for workclass and hours, for a study of working patterns. Each request looks modest. Lim Su-Ann asks him to run the attack on the union of both releases before sending anything. Run with workclass added, the desk reports 22 single-row matches where the first release reported 0, and Ravi's answer becomes a redesign of the second release rather than a send.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Play the outsider</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">You are the outsider with 1,000 real people's six facts, and Brightwater's ladder of candidate releases is in front of you. Walk the rungs, record what you can name, break rung 4, then run the same join in pandas against the public file so you can point it at your own releases. The widget's outsider is fixed by a seed, so it prints the numbers on this page every time.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Five hand-drawn boxes in a row, the attacker's workflow: collect six facts about 1,000 people, generalise them to the release's own levels, join on the six generalised columns, count the class size for each target, read the sensitive value in classes with one value. The fourth box, count class sizes, is filled in olive.">
+        <defs>
+          <filter id="b4dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="43" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b4dHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b4dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b4dH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b4dL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b4dS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b4dW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b4dV { font: 400 11px Inter, sans-serif; fill: #FFFFFF; }
+          .b4dN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b4dH" x="30" y="28">THE ATTACKER'S WORKFLOW, FIVE STEPS</text>
+
+        <g filter="url(#b4dSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="56" width="140" height="110" rx="12" transform="rotate(-1 100 111)" fill="#FFFFFF"/>
+          <rect x="200" y="56" width="140" height="110" rx="12" transform="rotate(0.8 270 111)" fill="#FFFFFF"/>
+          <rect x="370" y="56" width="140" height="110" rx="12" transform="rotate(-0.6 440 111)" fill="url(#b4dHc)"/>
+          <rect x="540" y="56" width="140" height="110" rx="12" transform="rotate(0.9 610 111)" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="710" y="56" width="140" height="110" rx="12" transform="rotate(-0.8 780 111)" fill="#FFFFFF"/>
+          <path d="M174 111 L194 111" marker-end="url(#b4dAr)"/>
+          <path d="M344 111 L364 111" marker-end="url(#b4dAr)"/>
+          <path d="M514 111 L534 111" marker-end="url(#b4dAr)"/>
+          <path d="M684 111 L704 111" marker-end="url(#b4dAr)"/>
+          <!-- doodle: a tally of four strokes and a slash under the count box -->
+          <path d="M586 184 L586 204 M596 184 L596 204 M606 184 L606 204 M616 184 L616 204 M580 200 L624 188" stroke="#4A4700"/>
+        </g>
+
+        <rect x="380" y="70" width="120" height="60" rx="6" fill="#FFFFFF"/>
+
+        <text class="b4dL" x="46" y="86">1 · Collect</text>
+        <text class="b4dS" x="46" y="106">six facts about</text>
+        <text class="b4dS" x="46" y="122">1,000 people</text>
+        <text class="b4dL" x="216" y="86">2 · Generalise</text>
+        <text class="b4dS" x="216" y="106">to the release's</text>
+        <text class="b4dS" x="216" y="122">own levels</text>
+        <text class="b4dL" x="386" y="86">3 · Join</text>
+        <text class="b4dS" x="386" y="106">on the six</text>
+        <text class="b4dS" x="386" y="122">generalised keys</text>
+        <text class="b4dW" x="556" y="86">4 · Count</text>
+        <text class="b4dV" x="556" y="106">class size c</text>
+        <text class="b4dV" x="556" y="122">for each target</text>
+        <text class="b4dL" x="726" y="86">5 · Read</text>
+        <text class="b4dS" x="726" y="106">the occupation in</text>
+        <text class="b4dS" x="726" y="122">one-value classes</text>
+
+        <text class="b4dN" x="30" y="232">Steps 1 and 2 cost the outsider almost nothing: the release's own documentation gives them the levels.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - everything the attack learns comes out of step 4, the count of rows sharing each target's key</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Step 1 · At rung 1, read what the outsider can name.</strong> The widget opens on "Pseudonymise only": names and IDs gone, the six demographics exact. Read the three linkage numbers: single-row matches, expected re-identifications and sensitive value revealed. The verdict line says why the file is not releasable.</p>
+        <div data-pe="desk" id="b4-desk" data-preset="p1"></div>
+        <div class="prompt-box good"><span class="label">★ Step 1 · rung 1, occupation</span>single-row matches:            175 of 1,000   (named outright)
+expected re-identifications:   272.5          (sum of 1 / class size)
+occupation revealed:           201 of 1,000   (class shares one job)
+why expected &gt; single:         ______________________________________</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 2 · Walk rungs 2 to 4.</strong> Pick "Age in 10-year bands", then "Coarsen five columns", then "Same, k = 5". Fill one row per rung. Watch which number reaches zero first, and which one does not.</p>
+        <div class="prompt-box good"><span class="label">★ Step 2 · three more rungs</span>rung                      single   expected   occupation revealed
+2  age in 10-year bands      85      129.6        97
+3  coarsen five columns       6       29.0        10
+4  same, k = 5                0       16.7         0
+what made single hit 0 at rung 4: _________________________________
+what keeps expected above 0:      _________________________________</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 3 · At rung 4, press the break button.</strong> Stay on "Same, k = 5" and press "Break it: publish workclass too". Workclass is now in the file exact, and the outsider knows it, but it is not declared. Record what changes and what does not, then press it again to undo.</p>
+        <div class="prompt-box good"><span class="label">★ Step 3 · the break</span>                         rung 4    rung 4 + workclass, undeclared
+k achieved (printed)       5        5          &lt;- unchanged: computed on six columns
+single-row matches         0       22
+expected re-ids           16.7     73.5
+occupation revealed        0       89
+the column that did it:  workclass ____________________________</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 4 · Run the join in pandas.</strong> Download the public file (archive.ics.uci.edu, dataset 2, adult.zip), unzip adult.data next to this script and run it. The mapping is the desk's rung 3 exactly; the last line checks that by counting 872 classes, the same number the desk reports. One difference: the desk draws its 1,000 known people with its own seed, and <code>df.sample(1000, random_state=7)</code> draws a different 1,000, so pandas prints 3 single matches and 23.1 expected where the widget prints 6 and 29.0. Same mechanism, different sample of people.</p>
+        <div class="prompt-box good"><span class="label">★ Step 4 · pandas, the join at rung 3</span>import pandas as pd
+cols = ["age", "workclass", "fnlwgt", "education", "education_num", "marital", "occupation",
+        "relationship", "race", "sex", "capital_gain", "capital_loss", "hours", "country", "income"]
+df = pd.read_csv("adult.data", names=cols, skipinitialspace=True)
+
+edu_order = ["Preschool", "1st-4th", "5th-6th", "7th-8th", "9th", "10th", "11th", "12th",
+             "HS-grad", "Some-college", "Assoc-voc", "Assoc-acdm", "Bachelors",
+             "Masters", "Prof-school", "Doctorate"]
+def edu5(e):
+    i = edu_order.index(e)
+    if i &lt;= 7: return "No high school diploma"
+    if i == 8: return "High school"
+    if i &lt;= 11: return "Some college or associate"
+    if i == 12: return "Bachelors"
+    return "Postgraduate"
+def marital3(m):
+    if m.startswith("Married"): return "Married"
+    if m == "Never-married": return "Never married"
+    return "Previously married"
+def country3(c):
+    if c == "United-States": return "United States"
+    if c == "?": return "Unknown"
+    return "Outside US"
+
+def rung3(t):  # the release's own mapping, applied to any table
+    return pd.DataFrame({
+        "age": (t["age"] // 10 * 10).astype(str) + "-" + (t["age"] // 10 * 10 + 9).astype(str),
+        "sex": t["sex"],
+        "race": t["race"].where(t["race"] == "White", "Not white"),
+        "marital": t["marital"].map(marital3),
+        "education": t["education"].map(edu5),
+        "country": t["country"].map(country3),
+    }, index=t.index)
+
+key = ["age", "sex", "race", "marital", "education", "country"]
+release = rung3(df)                                   # what Brightwater published
+outsider = rung3(df.sample(1000, random_state=7))     # the outsider's 1,000, generalised the same way
+outsider["target"] = outsider.index
+
+joined = outsider.merge(release, on=key, how="left")  # every release row each target could be
+size = joined.groupby("target").size()                # class size per target
+print("targets:          ", len(size))
+print("single matches:   ", int((size == 1).sum()))
+print("expected re-ids:  ", round((1 / size).sum(), 1))
+print("release classes:  ", release.groupby(key).ngroups)
+
+# output with random_state=7 (pandas 2.1.4):
+# targets:           1000
+# single matches:    3
+# expected re-ids:   23.1
+# release classes:   872</div>
+        <p>Point it at your own release by replacing <code>rung3</code> with your release's mapping and the outsider sample with any table an outsider could plausibly hold. If you add a column to the release, add it to <code>key</code> too: that one line is the break you just pressed.</p>
+      </div>
+      <div class="step">
+        <p><strong>Step 5 · Write the break-test line for the release record.</strong> The record lists every published column and the attack result on all of them, plus one line that shows the check was run against the columns actually leaving the building. Engineer session 8 assembles the full record from lines like this one.</p>
+        <div class="prompt-box good"><span class="label">★ Step 5 · the break-test line</span>linkage attack: 1,000 known people, six exact facts, joined on the published key
+result (rung 4):  0 single-row matches, 16.7 expected, 0 occupations revealed
+break test:       workclass published exact but undeclared
+                  k still prints 5; single 0 to 22; expected 16.7 to 73.5; occupation 89
+decision:         every published column is declared; re-run the attack against
+                  everything already released about these people: ________________</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>Run the attack last, every time.</strong> k, l and t are computed on the columns you declare; the attack is computed on the columns you publish. Run it after the final column list is frozen, and again whenever another release about the same people goes out.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before Engineer session 5</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li><strong>Name a real outsider table.</strong> For one dataset you could be asked to share, write down a table an outsider could actually hold about the same people (a directory, a public profile set, a previous release) and which of your columns it contains.</li>
+      <li><strong>Run the join on your own release.</strong> Adapt the pandas code: your mapping, your key, a seeded sample as the outsider. Record single-row matches and expected re-identifications, with the random_state you used.</li>
+      <li><strong>Break it once.</strong> Add one column you publish but did not declare to the key and re-run. Write down the before and after, in the same form as the Step 5 line.</li>
+      <li><strong>List your earlier releases.</strong> Note every file already sent out about the same people and the columns each carried. Engineer session 5 starts from a different angle: answering questions about the data without publishing rows at all.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Engineer session 4 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · An outsider joins a known person to the release and lands in a class of 4. What does 1 / 4 mean?</p>
+      <button class="qopt" type="button">A · A quarter of the class's occupation is revealed</button>
+      <button class="qopt" type="button">B · The release has k = 4</button>
+      <button class="qopt" type="button">C · The chance that picking one of the four rows names the right person</button>
+      <button class="qopt" type="button">D · The share of the file that is unique</button>
+      <p class="qwhy">The target is one of the four rows, so a guess is right one time in four. Adding 1 / class size over all known people gives the expected re-identifications.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">2 · From rung 4 on, single-row matches are 0, yet expected re-identifications are 16.7, 10.8 and 4.4. Why does the expected count never reach 0?</p>
+      <button class="qopt" type="button">A · The widget rounds small numbers up</button>
+      <button class="qopt" type="button">B · Some classes are still of size 1</button>
+      <button class="qopt" type="button">C · The outsider's table has errors</button>
+      <button class="qopt" type="button">D · Every published known person sits in a class of some size c and adds 1 / c, which is never zero; only suppressed rows add nothing</button>
+      <p class="qwhy">Suppression removes classes under k, so no class has one row, but every remaining person still adds a small positive amount. Zero would mean publishing nobody.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">3 · At rung 4, publishing workclass exact without declaring it leaves k printed at 5 but takes single-row matches from 0 to 22. What does that show?</p>
+      <button class="qopt" type="button">A · Workclass is a direct identifier</button>
+      <button class="qopt" type="button">B · k is computed over the declared columns only, so any published column left off the list makes the printed k describe the wrong key</button>
+      <button class="qopt" type="button">C · k = 5 is never safe</button>
+      <button class="qopt" type="button">D · The attack is broken when columns are added</button>
+      <p class="qwhy">The outsider joins on what is published, not on what is declared. Declaring every published column, and running the attack on the final column list, closes the gap.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The ladder attack: single-row matches 175, 85, 6, 0, 0, 0; expected re-identifications 272.5, 129.6, 29.0, 16.7, 10.8, 4.4; occupation revealed 201, 97, 10, 0; the break 22, 73.5, 89 with k still 5; rung 3's 872 classes; 17.18% and 27.78% unique</span><span class="note">UCI Adult, Becker and Kohavi 1996, CC BY 4.0; computed by the engine on 1,000 seeded targets; the pandas join on this page uses its own seeded sample and prints 3 and 23.1, stated as such</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The Massachusetts GIC re-identification of Governor Weld: a voter list for twenty dollars, joined on ZIP, birth date and sex</span><span class="note">Sweeney 2002, "k-anonymity: a model for protecting privacy", IJUFKS 10(5), 557-570; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Netflix Prize de-anonymisation with IMDb as auxiliary data: 8 ratings, 2 may be wrong, dates within 14 days, 99% uniquely identified; 2 to 8 ratings per user</span><span class="note">Narayanan and Shmatikov, "Robust De-anonymization of Large Sparse Datasets", 2008 IEEE Symposium on Security and Privacy, pp 111-125; arXiv text read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Identity disclosure in Step 5, managing re-identification and disclosure risks</span><span class="note">PDPC, Guide to Basic Anonymisation (2022), Steps 4 and 5, read at source</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Two releases of the same people joining into one with more columns</span><span class="note">Constructed explanation; the break result is the closest computed stand-in, not a two-release measurement</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Brightwater, Ravi Menon, Lim Su-Ann and the second partner's request</span><span class="note">Constructed and labelled</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Engineer session 4 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>The attack is a join</b><span>Generalise the known people the release's way, join on the key, count each class.</span></div>
+      <div class="cheat-item"><b>1 / class size</b><span>The chance of naming the right row. A class of 1 makes it certain.</span></div>
+      <div class="cheat-item"><b>Two numbers</b><span>Single-row matches, and expected re-identifications summed over every target.</span></div>
+      <div class="cheat-item"><b>Never zero</b><span>Every published person adds 1 / c. 272.5 falls to 4.4, not to 0.</span></div>
+      <div class="cheat-item"><b>Declared vs published</b><span>k uses declared columns; the outsider uses published ones. Workclass: 0 to 22.</span></div>
+      <div class="cheat-item"><b>Check the union</b><span>Run the attack against everything already released about the same people.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>Generalisation and suppression lower the attack's count and never remove it, and they break the moment a column or a second release slips past the check. Engineer session 5, Noise with a guarantee, changes the question: instead of publishing rows, answer counts with calibrated noise, and get a bound on what any one person's presence can reveal.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Engineer session 4 of 8 · learn-privacy-engineering-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b3-when-k-is-not-enough.html">← Prev: When k is not enough</a> &nbsp;·&nbsp; <a href="b5-noise-with-a-guarantee.html">Next: Noise with a guarantee →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/pe-data.js?v=1"></script>
+<script src="../assets/pe-engine.js?v=1"></script>
+<script src="../assets/pe-desk.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

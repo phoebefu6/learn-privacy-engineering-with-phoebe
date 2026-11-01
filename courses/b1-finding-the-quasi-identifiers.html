@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Engineer session 1 of 8. Direct identifiers, quasi-identifiers and sensitive columns; equivalence classes; and the uniqueness climb on 32,561 real census rows, from 0.01% on age alone to 17.18% on six ordinary facts.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Finding the quasi-identifiers - learn privacy engineering with phoebe">
+<meta property="og:description" content="Engineer session 1 of 8. Removing names changes nothing: 17.18% of 32,561 real people are alone on six ordinary facts.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/courses/b1-finding-the-quasi-identifiers.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Finding the quasi-identifiers - learn privacy engineering with phoebe">
+<meta name="twitter:description" content="Engineer session 1 of 8. Three kinds of column, equivalence classes, and the uniqueness climb on real rows.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Engineer session 1 · Finding the quasi-identifiers - learn privacy engineering with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=2">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-privacy-engineering-with-phoebe</a> / Engineer session 1 of 8</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Privacy Engineering with Phoebe · Engineer session 1 of 8</div>
+    <h1>Finding the <span class="accent">quasi-identifiers</span></h1>
+    <p class="sub">Brightwater's extract has no names, no ID numbers and no addresses. It still identifies people, because a handful of ordinary facts, age, sex, race, marital status, education and country of birth, are enough to make most of a group look different from everyone else. Tonight: the three kinds of column every release has, the equivalence class that every privacy measure is built on, and the uniqueness climb you will compute yourself on 32,561 real census rows.</p>
+    <div class="chip-row">
+      <span class="chip level">🟢 Engineer</span>
+      <span class="chip audience">Data engineers and analysts who prepare a release</span>
+      <span class="chip audience">pandas or the in-page widget</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Columns, classes, the climb</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: count who is alone</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where we start</h2>
+    </div>
+    <p class="lede">The Engineer track is for the people who build the file that leaves the building: the data engineer who writes the extract, the analyst who checks it, the platform lead who owns the pipeline. Eight sessions: tonight, which columns identify; then generalising and suppressing until every group has at least k people; when k is not enough; the linkage attack; differential privacy and its budget; synthetic data; and the Release Desk, where it all runs on one screen. Brightwater Social Research Institute, a Singapore research trust preparing a file for three university partners, is constructed: its people and requests are invented and labelled. The rows underneath are real: 32,561 people from the UCI Adult extract of the 1994 US Census, a public dataset researchers have tested anonymisation on for decades.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">★ Build-along = everyone works it through</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> A column inventory for one dataset you hold, with every column marked direct identifier, quasi-identifier or sensitive; the uniqueness climb for its quasi-identifiers, measured; and the one sentence a release request must answer before anyone writes a line of code: what could an outsider already know about the people in this file?</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers the three kinds of column</span>
+      <h2>Every release has three kinds of column</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Before any technique, sort the columns. A direct identifier names a person on its own: name, NRIC or passport number, phone, email. A quasi-identifier is harmless alone and identifying in combination: age, sex, postcode, date of birth, job title. A sensitive column is the thing the release is about and the thing an attacker wants: income, diagnosis, occupation, a claim amount. Removing the first kind is the easy part, and it is where most releases stop.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three hand-drawn bins. Left bin, direct identifiers, removed: name, NRIC, phone, email; Brightwater's extract has none of these. Middle bin, quasi-identifiers, filled with hachure: age, sex, race, marital status, education, country of birth, workclass. Right bin, sensitive columns, filled in plum: occupation and income band. An arrow from the middle bin to the right bin says an outsider who knows the middle can read the right.">
+        <defs>
+          <filter id="b1aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b1aHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b1aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b1aH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b1aL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b1aS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b1aW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b1aV { font: 600 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b1aN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b1aH" x="30" y="28">SORT EVERY COLUMN BEFORE YOU CHOOSE A TECHNIQUE</text>
+
+        <g filter="url(#b1aSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="50" width="240" height="230" rx="12" transform="rotate(-0.6 150 165)" fill="#FFFFFF"/>
+          <rect x="310" y="50" width="260" height="230" rx="12" transform="rotate(0.5 440 165)" fill="url(#b1aHc)"/>
+          <rect x="610" y="50" width="240" height="230" rx="12" transform="rotate(-0.4 730 165)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <path d="M60 116 L240 116 M60 148 L240 148 M60 180 L240 180 M60 212 L240 212" stroke="#57553F" stroke-width="1.4"/>
+          <path d="M576 170 L604 170" marker-end="url(#b1aAr)"/>
+          <!-- doodle: a magnifying glass on the middle bin -->
+          <circle cx="532" cy="244" r="13" stroke="#4A4700"/>
+          <path d="M541 253 L552 264" stroke="#4A4700"/>
+        </g>
+
+        <rect x="326" y="62" width="228" height="196" rx="8" fill="#FFFFFF"/>
+
+        <text class="b1aH" x="48" y="76">DIRECT IDENTIFIERS</text>
+        <text class="b1aS" x="48" y="94">name you on their own · remove</text>
+        <text class="b1aL" x="60" y="112">Name</text>
+        <text class="b1aL" x="60" y="144">NRIC or passport</text>
+        <text class="b1aL" x="60" y="176">Phone</text>
+        <text class="b1aL" x="60" y="208">Email</text>
+        <text class="b1aS" x="48" y="250">Brightwater's extract</text>
+        <text class="b1aS" x="48" y="266">has none of these</text>
+
+        <text class="b1aH" x="340" y="82">QUASI-IDENTIFIERS</text>
+        <text class="b1aS" x="340" y="100">harmless alone, identifying together</text>
+        <text class="b1aL" x="340" y="126">Age · Sex · Race</text>
+        <text class="b1aL" x="340" y="150">Marital status</text>
+        <text class="b1aL" x="340" y="174">Education</text>
+        <text class="b1aL" x="340" y="198">Country of birth</text>
+        <text class="b1aL" x="340" y="222">Workclass</text>
+        <text class="b1aS" x="340" y="244">what an outsider can know</text>
+
+        <text class="b1aW" x="628" y="76">SENSITIVE COLUMNS</text>
+        <text class="b1aV" x="628" y="94">what the release is about</text>
+        <text class="b1aW" x="628" y="134">Occupation</text>
+        <text class="b1aV" x="628" y="152">15 values</text>
+        <text class="b1aW" x="628" y="188">Income band</text>
+        <text class="b1aV" x="628" y="206">over or under 50K</text>
+
+        <text class="b1aN" x="30" y="310">Real UCI Adult columns. Which bin a column goes in depends on what an outsider could know, not on the column name.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the middle bin is the work: these columns stay in the file and do the identifying</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The test for a quasi-identifier<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Could someone outside know it?</strong> A column is a quasi-identifier when a person's neighbour, colleague, social media profile or another public dataset could tell an outsider its value. Age, sex and marital status pass easily. Your internal risk score usually does not, because nobody outside has it.</p>
+        <p><strong>Does it vary between people?</strong> A column where everyone has the same value identifies nobody. Country of birth is "United-States" for 29,170 of the 32,561 rows, so on its own it barely separates anyone; for the 3,391 rows not marked US-born (2,808 born elsewhere, 583 unknown) it separates a great deal.</p>
+        <p><strong>Is it sensitive as well?</strong> Some columns are both. Occupation is something an attacker wants and also something a colleague knows. Treat a column that is both as a quasi-identifier for the attack and as sensitive for the harm.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>What PDPC calls them<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Singapore's Personal Data Protection Commission sorts the columns the same way in its Guide to Basic Anonymisation (2022): direct identifiers are removed or replaced first, and k is then counted over the indirect identifiers only. The words differ between guides and papers ("quasi-identifier" is the research term, "indirect identifier" the guidance term), the idea does not. Whether a dataset that passes all this is still personal data under the PDPA is a legal question; <a href="https://phoebefu6.github.io/learn-pdpa-dnc-with-phoebe/">PDPA and DNC ↗</a> owns it.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The governor's medical record.</strong> In the 1990s the Massachusetts Group Insurance Commission released state employees' hospital records with names removed. Latanya Sweeney bought the Cambridge voter roll and joined it on ZIP code, date of birth and sex; the governor's record was the only one that matched. None of the three columns was a direct identifier. All three were quasi-identifiers, and the voter roll was the outsider's knowledge.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers equivalence classes</span>
+      <h2>An equivalence class is everyone who looks the same</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Group the rows by their quasi-identifier values. Each group is an equivalence class: inside it, an outsider who knows those values cannot tell the people apart. Its size is the number that matters. A class of one is a person the outsider can point at. Every measure in the next seven sessions, k, l, t, the linkage hit rate, is a statement about these classes.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Rows sorted into boxes by their quasi-identifier values. A box of four rows, all aged 39, male, white, never married, bachelors, born in the US, is a class of size 4. A box of two rows is a class of size 2. A single row, aged 39, female, Asian-Pac-Islander, divorced, doctorate, born in India, sits alone in a plum box: a class of size 1, a person the outsider can point at. Constructed illustration of the grouping.">
+        <defs>
+          <filter id="b1bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="13" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b1bHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b1bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b1bH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b1bL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b1bS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b1bV { font: 800 18px Inter, sans-serif; fill: #4A4700; }
+          .b1bW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b1bX { font: 800 18px Inter, sans-serif; fill: #FFFFFF; }
+          .b1bN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b1bH" x="30" y="28">GROUP BY THE QUASI-IDENTIFIERS, THEN COUNT EACH GROUP</text>
+
+        <g filter="url(#b1bSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="52" width="330" height="182" rx="12" transform="rotate(-0.5 195 143)" fill="#F7F6E4" stroke="#7A7600"/>
+          <rect x="390" y="52" width="250" height="150" rx="12" transform="rotate(0.6 515 127)" fill="#F7F6E4" stroke="#7A7600"/>
+          <rect x="670" y="52" width="180" height="182" rx="12" transform="rotate(-0.8 760 143)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <!-- doodle: a pointing hand line on the lone row -->
+          <path d="M760 252 L760 238" marker-end="url(#b1bAr)"/>
+        </g>
+
+        <rect x="44" y="92" width="302" height="26" rx="6" fill="#FFFFFF"/>
+        <rect x="44" y="124" width="302" height="26" rx="6" fill="#FFFFFF"/>
+        <rect x="44" y="156" width="302" height="26" rx="6" fill="#FFFFFF"/>
+        <rect x="44" y="188" width="302" height="26" rx="6" fill="#FFFFFF"/>
+        <rect x="404" y="106" width="222" height="26" rx="6" fill="#FFFFFF"/>
+        <rect x="404" y="138" width="222" height="26" rx="6" fill="#FFFFFF"/>
+
+        <text class="b1bL" x="46" y="76">39 · Male · White · Never married · Bachelors · US</text>
+        <text class="b1bS" x="56" y="110">row 1</text>
+        <text class="b1bS" x="56" y="142">row 2</text>
+        <text class="b1bS" x="56" y="174">row 3</text>
+        <text class="b1bS" x="56" y="206">row 4</text>
+        <text class="b1bV" x="260" y="112">size 4</text>
+
+        <text class="b1bL" x="404" y="76">52 · Female · Black · Widowed</text>
+        <text class="b1bL" x="404" y="94">HS-grad · US</text>
+        <text class="b1bS" x="416" y="124">row 5</text>
+        <text class="b1bS" x="416" y="156">row 6</text>
+        <text class="b1bV" x="540" y="190">size 2</text>
+
+        <text class="b1bW" x="686" y="76">39 · Female · Asian</text>
+        <text class="b1bW" x="686" y="94">Divorced · Doctorate</text>
+        <text class="b1bW" x="686" y="112">born in India</text>
+        <text class="b1bX" x="686" y="160">size 1</text>
+        <text class="b1bW" x="686" y="186">alone: the outsider</text>
+        <text class="b1bW" x="686" y="204">can point at her</text>
+
+        <text class="b1bN" x="30" y="282">The real file has 8,553 such classes on six columns; 5,594 of them hold exactly one person.</text>
+        <text class="b1bN" x="30" y="302">Rows shown are a constructed illustration of the grouping; the two counts are computed from the 32,561 rows.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - privacy is a property of the classes, never of a single column</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Three numbers from one groupby<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>The number of classes.</strong> On age, sex, race, marital status, education and country of birth, the 32,561 rows fall into 8,553 classes.</p>
+        <p><strong>The number of rows in a class of one.</strong> 5,594 rows, 17.18% of the file, share their six values with nobody. Each is a person an outsider who knows those six facts can single out.</p>
+        <p><strong>The smallest class size.</strong> That is k, the subject of Engineer session 2. Here k is 1, and no release with k of 1 is anonymised in any useful sense.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Identity, attribute and inference disclosure<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>PDPC's Guide to Basic Anonymisation (Step 5) names three kinds of disclosure a release must manage: identity disclosure, where a record is tied to a person; attribute disclosure, where something about a person is learned; and inference disclosure, where something is deduced from the released data. A class of one invites identity disclosure, and the linkage attack in Engineer session 4 measures it. Reading a value that every member of a class shares is attribute disclosure, Engineer session 3. Inference from patterns in the data is the gap differential privacy addresses, Engineer session 5. Keep the three apart: a release can pass one test and fail the other two.</p>
+      </div>
+    </details>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers the uniqueness climb</span>
+      <h2>Each ordinary column multiplies the people who are alone</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Add the quasi-identifiers one at a time and count the rows in a class of one. The curve is flat for the first two columns and then climbs steeply, because each new column splits every existing class. It is the most useful single chart in a release review: it shows which column is doing the identifying.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn step chart of the share of the 32,561 real rows that are unique as columns are added. Age alone 0.01 percent. Plus sex 0.02. Plus race 0.20. Plus marital status 1.73. Plus education 10.39. Plus country of birth 17.18. A dashed seventh step, plus workclass, reaches 27.78 percent, drawn in plum.">
+        <defs>
+          <filter id="b1cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="19" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b1cHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b1cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b1cH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b1cL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b1cS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b1cV { font: 800 16px Inter, sans-serif; fill: #4A4700; }
+          .b1cB { font: 800 16px Inter, sans-serif; fill: #5C1A33; }
+          .b1cA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .b1cN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b1cH" x="30" y="28">SHARE OF 32,561 REAL ROWS IN A CLASS OF ONE, ADDING ONE COLUMN AT A TIME</text>
+
+        <g filter="url(#b1cSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M70 270 L840 270" stroke="#57553F" stroke-width="1.4"/>
+          <path d="M70 270 L70 50" stroke="#57553F" stroke-width="1.4"/>
+          <rect x="84" y="269" width="80" height="1" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="190" y="268" width="80" height="2" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="296" y="268" width="80" height="2" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="402" y="257" width="80" height="13" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="508" y="194" width="80" height="76" rx="3" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="614" y="144" width="80" height="126" rx="3" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="720" y="66" width="80" height="204" rx="3" fill="url(#b1cHc)" stroke="#8E2A4F" stroke-dasharray="6 5"/>
+        </g>
+
+        <text class="b1cA" x="30" y="274">0%</text>
+        <text class="b1cA" x="26" y="62">30%</text>
+
+        <text class="b1cV" x="96" y="256">0.01%</text>
+        <text class="b1cV" x="202" y="256">0.02%</text>
+        <text class="b1cV" x="308" y="256">0.20%</text>
+        <text class="b1cV" x="414" y="246">1.73%</text>
+        <text class="b1cV" x="514" y="184">10.39%</text>
+        <text class="b1cV" x="620" y="134">17.18%</text>
+        <text class="b1cB" x="726" y="56">27.78%</text>
+
+        <text class="b1cL" x="96" y="290">age</text>
+        <text class="b1cL" x="202" y="290">+ sex</text>
+        <text class="b1cL" x="308" y="290">+ race</text>
+        <text class="b1cL" x="414" y="290">+ marital</text>
+        <text class="b1cL" x="520" y="290">+ education</text>
+        <text class="b1cL" x="626" y="290">+ country</text>
+        <text class="b1cL" x="732" y="290">+ workclass</text>
+
+        <text class="b1cN" x="30" y="322">Computed from the real rows. Order matters for the shape; the last bar is the same whatever the order.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - education is the column that turns a few unique people into one in ten</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Why the curve bends upward<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Columns multiply.</strong> Age has 73 values, sex 2, race 5, marital status 7, education 16, country of birth 42. The possible combinations multiply to 3,433,920, against 32,561 people. Most combinations are empty, and the people in the rare ones are alone.</p>
+        <p><strong>Skew makes it worse.</strong> Most rows are white, US-born and in a handful of education levels. The few who are not land in tiny classes. Uniqueness falls hardest on minorities, migrants and people with rare jobs or degrees, which is exactly who a careless release exposes first.</p>
+        <p><strong>Size helps less than you hope.</strong> A bigger file puts more people in each class, but the curve keeps its shape. A national dataset with date of birth and postcode is far more unique than this one.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>What the research found on whole populations<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Sweeney estimated from 1990 US Census summaries that ZIP code, full date of birth and sex were likely to single out about 87% of the US population. Golle re-ran the estimate on the 2000 Census and found about 63%, still a majority. Rocher, Hendrickx and de Montjoye (2019) fitted a model that estimated 99.98% of Americans could be correctly re-identified in any dataset using 15 demographic attributes. The numbers differ because the columns, years and methods differ; the direction does not. Your own file's climb, measured as above, is the number your release review needs.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Searches with no names.</strong> In 2006 AOL released about 20 million web search queries with each user replaced by a number. Reporters from The New York Times read the queries of user 4417749 and traced them to Thelma Arnold, a 62-year-old widow in Lilburn, Georgia. Search terms were never thought of as quasi-identifiers. Any column about a person can become one.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Count who is alone in Brightwater's extract</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">Dr Hana Seow, Brightwater's research director, has three university partners asking for the extract. Ravi Menon, the data engineer, has already removed names and IDs and wants to send it. Before he does, measure what the file still reveals. Use the widget below in the browser, or run the pandas code on your own machine against the same public file; both print the same numbers.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Five hand-drawn boxes in a row, the steps of the build-along: list the columns, sort them into three bins, ask what an outsider knows, measure the climb, write the finding. The fourth box, measure the climb, is filled in olive.">
+        <defs>
+          <filter id="b1dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="23" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b1dHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b1dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b1dH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b1dL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b1dS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b1dW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b1dV { font: 400 11px Inter, sans-serif; fill: #FFFFFF; }
+          .b1dN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b1dH" x="30" y="28">FIVE STEPS, ONE FINDING</text>
+
+        <g filter="url(#b1dSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="56" width="140" height="110" rx="12" transform="rotate(-1 100 111)" fill="#FFFFFF"/>
+          <rect x="204" y="56" width="140" height="110" rx="12" transform="rotate(0.8 274 111)" fill="#FFFFFF"/>
+          <rect x="378" y="56" width="140" height="110" rx="12" transform="rotate(-0.6 448 111)" fill="url(#b1dHc)"/>
+          <rect x="552" y="56" width="140" height="110" rx="12" transform="rotate(0.9 622 111)" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="726" y="56" width="124" height="110" rx="12" transform="rotate(-0.8 788 111)" fill="#FFFFFF"/>
+          <path d="M174 111 L198 111" marker-end="url(#b1dAr)"/>
+          <path d="M348 111 L372 111" marker-end="url(#b1dAr)"/>
+          <path d="M522 111 L546 111" marker-end="url(#b1dAr)"/>
+          <path d="M696 111 L720 111" marker-end="url(#b1dAr)"/>
+          <!-- doodle: a pencil on the last box -->
+          <path d="M800 186 L836 150 L844 158 L808 194 Z" stroke="#4A4700"/>
+        </g>
+
+        <rect x="388" y="70" width="120" height="60" rx="6" fill="#FFFFFF"/>
+
+        <text class="b1dL" x="46" y="86">1 · List</text>
+        <text class="b1dS" x="46" y="106">every column</text>
+        <text class="b1dS" x="46" y="122">in the extract</text>
+        <text class="b1dL" x="220" y="86">2 · Sort</text>
+        <text class="b1dS" x="220" y="106">direct, quasi,</text>
+        <text class="b1dS" x="220" y="122">sensitive</text>
+        <text class="b1dL" x="394" y="86">3 · Ask</text>
+        <text class="b1dS" x="394" y="106">what does an</text>
+        <text class="b1dS" x="394" y="122">outsider know?</text>
+        <text class="b1dW" x="568" y="86">4 · Measure</text>
+        <text class="b1dV" x="568" y="106">the uniqueness</text>
+        <text class="b1dV" x="568" y="122">climb</text>
+        <text class="b1dL" x="740" y="86">5 · Write</text>
+        <text class="b1dS" x="740" y="106">the finding in</text>
+        <text class="b1dS" x="740" y="122">one sentence</text>
+
+        <text class="b1dN" x="30" y="226">Step 4 is the only one with code. Steps 2 and 3 are the ones that decide whether step 4 measured the right thing.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the measuring is easy; deciding what an outsider knows is the engineering judgement</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Step 1 · List every column.</strong> Write down every column in the extract, including the ones you think are harmless. Brightwater's file has fifteen; the list below is the real UCI Adult header.</p>
+        <div class="prompt-box good"><span class="label">★ Step 1 · the columns</span>age, workclass, fnlwgt, education, education_num, marital, occupation,
+relationship, race, sex, capital_gain, capital_loss, hours, country, income</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 2 · Sort them into three bins.</strong> Direct identifier, quasi-identifier or sensitive. A column that is both, mark both. Note that education_num is a copy of education and relationship largely repeats marital status and sex: a duplicate column is still a quasi-identifier.</p>
+        <div class="prompt-box good"><span class="label">★ Step 2 · three bins</span>direct identifiers:  (none in this extract; names and IDs already removed)
+quasi-identifiers:   age, sex, race, marital, education, country, workclass,
+                     relationship, education_num, hours ______________
+sensitive:           occupation, income, capital_gain, capital_loss ______
+not sure yet:        fnlwgt (a census weight)  ___________________________</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 3 · Write what an outsider could know.</strong> Name a realistic outsider: a colleague, a neighbour, someone with the person's social media profile. List the columns they could fill in. Brightwater's partners are university researchers; their students are an outsider too.</p>
+        <div class="prompt-box good"><span class="label">★ Step 3 · the outsider</span>outsider:    a colleague of someone in the file
+they know:   age, sex, race, marital status, education, country of birth
+they might:  workclass (public sector or private), hours worked
+they want:   occupation detail, income band</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 4 · Measure the climb.</strong> Tick the columns in the widget one at a time, in the order you listed them, and record the unique share each time. Or download the public file (archive.ics.uci.edu, dataset 2, adult.zip), unzip it next to this script and run it.</p>
+        <div data-pe="uniq" id="b1-uniq"></div>
+        <div class="prompt-box good"><span class="label">★ Step 4 · pandas, the same numbers</span>import pandas as pd
+cols = ["age", "workclass", "fnlwgt", "education", "education_num", "marital", "occupation",
+        "relationship", "race", "sex", "capital_gain", "capital_loss", "hours", "country", "income"]
+df = pd.read_csv("adult.data", names=cols, skipinitialspace=True)
+qi = ["age", "sex", "race", "marital", "education", "country"]
+for i in range(1, len(qi) + 1):
+    size = df.groupby(qi[:i])["age"].transform("size")
+    print(f"+ {qi[i - 1]:&lt;10} unique: {100 * (size == 1).mean():.2f}%")
+# prints 0.01% 0.02% 0.20% 1.73% 10.39% 17.18%</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 5 · Write the finding in one sentence.</strong> The finding has three parts: the share alone, the columns that did it, and the outsider who could use it. This sentence goes at the top of the release request, and Engineer session 2 starts from it.</p>
+        <div class="prompt-box good"><span class="label">★ Step 5 · the finding</span>On ______ columns an outsider could know, ____% of rows are in a class of one;
+the column that does most of the identifying is ________.
+Brightwater: on six columns a colleague could know, 17.18% of 32,561 rows
+are alone; education takes it from 1.73% to 10.39%.</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>Keep the inventory.</strong> The three-bin sort and the climb are inputs to every later session. If a column moves bins later because you learn an outsider could know it, re-run the climb; the release decision changes with it.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before Engineer session 2</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li><strong>Sort one of your own datasets.</strong> Pick a table you could be asked to share. Put every column in one of the three bins and note the ones you were unsure about.</li>
+      <li><strong>Measure its climb.</strong> Run the groupby loop on its quasi-identifiers and record where the curve turns upward.</li>
+      <li><strong>Add workclass.</strong> In the widget, add the one column Brightwater's outsider "might" know and watch 17.18% become 27.78%. Write down which of your own columns plays that role.</li>
+      <li><strong>Bring the finding sentence.</strong> Engineer session 2 generalises the column that does the most identifying and measures what that costs.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Engineer session 1 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · Brightwater's extract has no names or IDs. On age, sex, race, marital status, education and country of birth, what share of its 32,561 real rows are in a class of one?</p>
+      <button class="qopt" type="button">A · None; without names nobody can be identified</button>
+      <button class="qopt" type="button">B · 17.18%, 5,594 people</button>
+      <button class="qopt" type="button">C · 0.01%</button>
+      <button class="qopt" type="button">D · 100%</button>
+      <p class="qwhy">Removing direct identifiers leaves the quasi-identifiers, and six ordinary facts put more than one in six people alone.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">2 · What makes a column a quasi-identifier?</p>
+      <button class="qopt" type="button">A · It is called "ID" or "key"</button>
+      <button class="qopt" type="button">B · It is the column the release is about</button>
+      <button class="qopt" type="button">C · An outsider could know its value for a person, and in combination with others it separates people</button>
+      <button class="qopt" type="button">D · It is unique on its own</button>
+      <p class="qwhy">Age is not unique and not called an ID, yet with five other ordinary columns it singles people out. What an outsider can know decides the bin.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · Why does adding education to age, sex, race and marital status raise the unique share from 1.73% to 10.39%?</p>
+      <button class="qopt" type="button">A · Each new column splits every existing class, and its 16 values leave many people in classes of their own</button>
+      <button class="qopt" type="button">B · Education is a direct identifier</button>
+      <button class="qopt" type="button">C · The file gets smaller</button>
+      <button class="qopt" type="button">D · Education is sensitive</button>
+      <p class="qwhy">Combinations multiply while the number of people stays the same, so the rare combinations empty out into classes of one.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">32,561 rows; the uniqueness climb 0.01, 0.02, 0.20, 1.73, 10.39, 17.18%, and 27.78% with workclass; 8,553 classes and 5,594 rows alone on six columns</span><span class="note">UCI Adult, Becker and Kohavi 1996, CC BY 4.0; computed by the engine and by the pandas code on this page, which agree</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Direct and indirect identifiers; identity, attribute and inference disclosure</span><span class="note">PDPC, Guide to Basic Anonymisation (2022), Steps 2 to 5, read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The Massachusetts GIC re-identification; 87% likely unique on ZIP, birth date and sex</span><span class="note">Sweeney 2002, IJUFKS 10(5); Sweeney 2000, Data Privacy Working Paper 3; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Golle's 63% on the 2000 Census</span><span class="note">Golle 2006, ACM Workshop on Privacy in the Electronic Society; abstract read at source</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Rocher et al.'s 99.98% with 15 attributes</span><span class="note">Nature Communications 10, 3069 (2019); a model estimate, taught as one</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">AOL search logs, user 4417749</span><span class="note">Barbaro and Zeller, The New York Times, 9 August 2006, read via an archived copy</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Brightwater, Dr Hana Seow, Ravi Menon and the partner request</span><span class="note">Constructed and labelled</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Engineer session 1 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Three bins</b><span>Direct identifiers, quasi-identifiers, sensitive. Removing the first is the easy part.</span></div>
+      <div class="cheat-item"><b>The quasi test</b><span>Could an outsider know it, and does it separate people in combination?</span></div>
+      <div class="cheat-item"><b>Equivalence class</b><span>Everyone with the same quasi-identifier values. Privacy lives here.</span></div>
+      <div class="cheat-item"><b>A class of one</b><span>A person the outsider can point at. 5,594 of them on six real columns.</span></div>
+      <div class="cheat-item"><b>The climb</b><span>Add columns one at a time; the bend shows which column identifies.</span></div>
+      <div class="cheat-item"><b>The finding</b><span>Share alone, the column that did it, the outsider who could use it.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>You can say which columns identify and how many people are alone. Engineer session 2 makes the classes bigger: generalisation hierarchies, suppressing the rows that still stand alone, k computed on the real rows, and the precision each step gives up.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Engineer session 1 of 8 · learn-privacy-engineering-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="../index.html">← Course home</a> &nbsp;·&nbsp; <a href="b2-generalise-and-suppress-to-k.html">Next: Generalise and suppress to k →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/pe-data.js?v=1"></script>
+<script src="../assets/pe-engine.js?v=1"></script>
+<script src="../assets/pe-desk.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

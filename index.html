@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Anonymisation, k-anonymity, l-diversity, linkage attacks, differential privacy and synthetic data as engineering, computed in the browser on 32,561 real census rows. A Leader track and an Engineer track. By Phoebe Fu.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Learn Privacy Engineering with Phoebe">
+<meta property="og:description" content="Anonymisation, k-anonymity and differential privacy as engineering, computed on 32,561 real rows. Two tracks: Leader 4 and Engineer 8.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Learn Privacy Engineering with Phoebe">
+<meta name="twitter:description" content="Pseudonymous is not anonymous. Measure it on real rows, then release with a number you can defend.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Learn Privacy Engineering with Phoebe</title>
+<link rel="stylesheet" href="assets/style.css?v=2">
+<style>
+  .stats-row { display: flex; gap: 2.4rem; margin-top: 1.5rem; flex-wrap: wrap; }
+  .stat b { display: block; font-size: 2.1rem; font-weight: 800; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: .72rem; opacity: 1; text-transform: uppercase; letter-spacing: .09em; font-weight: 600; }
+  .course-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+  .course-card {
+    border: 1px solid var(--hairline);
+    border-top: 4px solid var(--diff, var(--indigo));
+    border-radius: var(--radius);
+    padding: 1.2rem 1.3rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    text-decoration: none;
+    color: var(--ink);
+    background: #fff;
+    transition: box-shadow .15s ease, border-color .15s ease, transform .15s ease;
+    position: relative;
+  }
+  .course-card:hover { border-color: var(--indigo-soft); border-top-color: var(--diff, var(--indigo)); box-shadow: 0 8px 28px rgba(var(--shadow-rgb),.16); transform: translateY(-3px); }
+  .course-card .cicon { font-size: 1.7rem; line-height: 1; }
+  .course-card .cnum { font-size: .72rem; font-weight: 700; color: var(--indigo-deep); text-transform: uppercase; letter-spacing: .1em; }
+  .course-card h3 { font-size: 1.05rem; font-weight: 800; line-height: 1.3; }
+  .course-card p { font-size: .85rem; color: var(--muted); flex: 1; }
+  .course-card .meta { display: flex; gap: .4rem; flex-wrap: wrap; }
+  .diff-legend { display: flex; gap: 1rem; margin-top: 1.6rem; font-size: .74rem; color: var(--muted); font-weight: 600; flex-wrap: wrap; }
+  .diff-legend i { display: inline-block; width: .85rem; height: .35rem; border-radius: 999px; margin-right: .35rem; vertical-align: middle; }
+  .paths { margin-top: 2.6rem; }
+  .paths h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: .3rem; }
+  .paths .plede { color: var(--muted); font-size: .92rem; margin-bottom: .8rem; }
+  .path { display: flex; gap: .55rem; align-items: center; padding: .75rem 0; border-bottom: .5px solid var(--hairline); flex-wrap: wrap; }
+  .path:last-child { border-bottom: none; }
+  .path b { min-width: 15.5rem; font-size: .9rem; }
+  .path .pstep { background: var(--indigo-50); color: var(--indigo-deep); border-radius: 999px; padding: .16rem .68rem; font-weight: 700; font-size: .8rem; text-decoration: none; transition: all .12s ease; }
+  .path .pstep:hover { background: var(--indigo-deep); color: #fff; }
+  .path .parr { color: var(--muted); font-weight: 700; }
+  .mm-section { margin-top: 1.6rem; }
+  .mm-section h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: .2rem; }
+  .mm-section .mm-lede { color: var(--muted); font-size: .92rem; margin-bottom: .4rem; }
+  .mm-wrap { border: 1px solid var(--hairline); border-radius: var(--radius); background: linear-gradient(180deg,#fff,var(--indigo-50)); padding: .6rem; overflow-x: auto; }
+  .mm-svg { width: 100%; height: auto; display: block; max-width: 60rem; margin: 0 auto; min-width: 34rem; }
+  .mm-link { cursor: pointer; text-decoration: none; }
+  .mm-node rect { transition: opacity .15s ease, filter .15s ease; }
+  .mm-node text { pointer-events: none; }
+  .mm-link:hover .mm-node rect { filter: brightness(1.06); }
+  .mm-edge { transition: opacity .15s ease; }
+  .not-this { border: 1px solid var(--hairline); border-left: 4px solid var(--clay); border-radius: var(--radius); background: #fff; padding: 1.1rem 1.3rem; margin-top: 1.2rem; }
+  .not-this h3 { font-size: .95rem; font-weight: 800; margin-bottom: .5rem; }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn with Phoebe · Data &amp; AI Governance</div>
+    <h1>Learn <span class="accent">Privacy Engineering</span> with Phoebe</h1>
+    <div class="stats-row">
+      <div class="stat"><b data-count="12">12</b><span>sessions, two tracks</span></div>
+      <div class="stat"><b data-count="32561">32561</b><span>real census rows</span></div>
+      <div class="stat"><b data-count="1000">1000</b><span>people the attacker knows</span></div>
+      <div class="stat"><b data-count="6">6</b><span>release presets, measured</span></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section">
+    <div class="paths" style="margin-top:0">
+      <h2>Leader track 🧭 <span style="font-size:.85rem;font-weight:600;color:var(--muted)">· four sessions, no code</span></h2>
+      <p class="plede">For the data protection officer, the head of data and the product lead who decide whether a dataset may leave the building. What anonymous means in practice, how the release route changes the risk, which technique fits which release, and how to sign off with a number someone else can check.</p>
+    </div>
+    <div class="course-grid">
+      <a class="course-card" href="courses/a1-pseudonymous-is-not-anonymous.html" style="--diff:#34D399"><span class="cicon">🎭</span><span class="cnum">Leader session 1 · start here</span><h3>Pseudonymous is not anonymous</h3><p>Why removing names changes nothing on the real rows: 17.18% of 32,561 people are alone on six ordinary facts. PDPC&#x27;s line between anonymised and pseudonymised, and three releases that were undone.</p><span class="meta"><span class="pill amber">▶ Start here</span></span></a>
+      <a class="course-card" href="courses/a2-the-release-environment.html" style="--diff:#34D399"><span class="cicon">🏛️</span><span class="cnum">Leader session 2</span><h3>The release environment</h3><p>Risk is the data plus where it lands. Public, restricted and enclave releases, the controls on the recipient, and who the realistic intruder is.</p><span class="meta"><span class="pill">data + environment</span></span></a>
+      <a class="course-card" href="courses/a3-choosing-the-technique.html" style="--diff:#FBBF24"><span class="cicon">🧰</span><span class="cnum">Leader session 3</span><h3>Choosing the technique</h3><p>Generalise and suppress, add calibrated noise, or generate synthetic rows: what each protects, what each costs the researcher, and when to use which.</p><span class="meta"><span class="pill">three tools, three costs</span></span></a>
+      <a class="course-card" href="courses/a4-signing-off-a-release.html" style="--diff:#FB923C"><span class="cicon">✍️</span><span class="cnum">Leader session 4</span><h3>Signing off a release</h3><p>The thresholds, the attack test, the privacy budget and the record that lets someone else check your decision a year later.</p><span class="meta"><span class="pill">the sign-off memo</span></span></a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="paths" style="margin-top:0">
+      <h2>Engineer track 🛠️ <span style="font-size:.85rem;font-weight:600;color:var(--muted)">· eight sessions, hands-on in the browser</span></h2>
+      <p class="plede">For the data engineers and analysts who prepare the release. Every widget computes in your browser on 32,561 real rows of the UCI Adult census extract: quasi-identifiers, k-anonymity, l-diversity and t-closeness, a linkage attack, Laplace noise and a privacy budget, and synthetic data checked for copies.</p>
+    </div>
+    <div class="course-grid">
+      <a class="course-card" href="courses/b1-finding-the-quasi-identifiers.html" style="--diff:#34D399"><span class="cicon">🔎</span><span class="cnum">Engineer session 1 · start here</span><h3>Finding the quasi-identifiers</h3><p>Direct identifiers, quasi-identifiers and sensitive columns. Count the people who are alone as you add columns: 0.01% on age, 17.18% on six.</p><span class="meta"><span class="pill amber">▶ Start here</span></span></a>
+      <a class="course-card" href="courses/b2-generalise-and-suppress-to-k.html" style="--diff:#34D399"><span class="cicon">🧱</span><span class="cnum">Engineer session 2</span><h3>Generalise and suppress to k</h3><p>Generalisation hierarchies, record suppression and k-anonymity computed on the real rows, with the precision each step gives up.</p><span class="meta"><span class="pill">k on real rows</span></span></a>
+      <a class="course-card" href="courses/b3-when-k-is-not-enough.html" style="--diff:#FBBF24"><span class="cicon">🧬</span><span class="cnum">Engineer session 3</span><h3>When k is not enough</h3><p>A class of five where everyone has the same occupation tells the attacker everything. l-diversity and t-closeness, and why t stays high on these rows.</p><span class="meta"><span class="pill">homogeneity attack</span></span></a>
+      <a class="course-card" href="courses/b4-the-linkage-attack.html" style="--diff:#FBBF24"><span class="cicon">🔗</span><span class="cnum">Engineer session 4</span><h3>The linkage attack</h3><p>Play the outsider: join what you know about 1,000 people to the release. 175 single-row matches on the pseudonymised file, 0 at k = 5, 22 again once workclass slips out.</p><span class="meta"><span class="pill">1,000 known people</span></span></a>
+      <a class="course-card" href="courses/b5-noise-with-a-guarantee.html" style="--diff:#FB923C"><span class="cicon">🎲</span><span class="cnum">Engineer session 5</span><h3>Noise with a guarantee</h3><p>Differential privacy from the definition up: sensitivity, the Laplace mechanism, epsilon, and why the noise is the same size for every count.</p><span class="meta"><span class="pill">epsilon, not a vibe</span></span></a>
+      <a class="course-card" href="courses/b6-spending-a-privacy-budget.html" style="--diff:#FB923C"><span class="cicon">💰</span><span class="cnum">Engineer session 6</span><h3>Spending a privacy budget</h3><p>Every query spends epsilon. Composition, the budget for a whole release, post-processing for free, and the US 2020 Census as the worked example.</p><span class="meta"><span class="pill">the budget</span></span></a>
+      <a class="course-card" href="courses/b7-synthetic-data-and-its-leaks.html" style="--diff:#FB923C"><span class="cicon">🧪</span><span class="cnum">Engineer session 7</span><h3>Synthetic data and its leaks</h3><p>Two toy generators on the real rows: one destroys the pay gap researchers need, the other copies real people. How to test a synthetic file before release.</p><span class="meta"><span class="pill">copied or generated?</span></span></a>
+      <a class="course-card" href="courses/b8-the-release-desk.html" style="--diff:#F87171"><span class="cicon">🛡️</span><span class="cnum">Engineer session 8 · bench night</span><h3>The Release Desk</h3><p>The bench: six presets from pseudonymised to heavy, live k, l, t, suppression and a linkage attack, a break button, and a release you can sign.</p><span class="meta"><span class="pill amber">★ the bench</span></span></a>
+    </div>
+    <div class="diff-legend">
+      <span><i style="background:#34D399"></i>foundations</span>
+      <span><i style="background:#FBBF24"></i>core</span>
+      <span><i style="background:#FB923C"></i>stretch</span>
+      <span><i style="background:#F87171"></i>bench night</span>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="paths" style="margin-top:0">
+      <h2>Your passport 🎫</h2>
+      <p class="plede">Clear all three quiz questions in a session and it gets stamped. Twelve stamps means you can measure re-identification risk on real rows, choose and tune a technique, and sign off a release with numbers someone else can check. Stamps live in this browser only.</p>
+    </div>
+    <div class="pp-strip"></div>
+  </section>
+
+  <section class="section">
+    <div class="not-this">
+      <h3>What this is not, so you land in the right place 🧭</h3>
+      <table class="clean">
+        <tr><th>If your question is</th><th>Go here instead</th></tr>
+        <tr><td>What does Singapore's PDPA require of us, and how do we stay compliant?</td><td><a href="https://phoebefu6.github.io/learn-pdpa-dnc-with-phoebe/">PDPA and DNC ↗</a></td></tr>
+        <tr><td>Does the EU GDPR reach us, and on what lawful basis may we process?</td><td><a href="https://phoebefu6.github.io/learn-gdpr-with-phoebe/">GDPR ↗</a></td></tr>
+        <tr><td>Who inside the company may see which rows and columns, masking and tokenisation?</td><td><a href="https://phoebefu6.github.io/learn-data-access-control-with-phoebe/">Data Access Control ↗</a></td></tr>
+        <tr><td>May we sell this dataset, and at what price?</td><td><a href="https://phoebefu6.github.io/learn-data-monetisation-with-phoebe/">Data Monetisation ↗</a></td></tr>
+        <tr><td>Publishing a city's count tables with small cells suppressed</td><td><a href="https://phoebefu6.github.io/learn-smart-city-with-phoebe/">Smart City ↗</a></td></tr>
+        <tr><td><strong>Is this release anonymous enough, and how do we prove it?</strong></td><td><strong>you are in the right place</strong></td></tr>
+      </table>
+      <p style="margin-top:.7rem;font-size:.86rem;color:var(--muted)"><strong>Engineering, not legal advice.</strong> The law decides what counts as personal data; these sessions measure re-identification risk and reduce it. Brightwater is constructed; the rows are real and public.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="paths">
+      <h2>Choose your path 🗺️</h2>
+      <p class="plede">Three doors into the same conviction: removing names is not anonymisation, and a release is only as safe as the attack it has survived.</p>
+      <div class="path"><b>🧭 I decide what leaves</b>
+        <a class="pstep" href="courses/a1-pseudonymous-is-not-anonymous.html">A1</a><span class="parr">→</span><a class="pstep" href="courses/a2-the-release-environment.html">A2</a><span class="parr">→</span><a class="pstep" href="courses/a3-choosing-the-technique.html">A3</a><span class="parr">→</span><a class="pstep" href="courses/a4-signing-off-a-release.html">A4</a>
+        <span style="font-size:.82rem;color:var(--muted)">the line, the route, the tool, the sign-off</span>
+      </div>
+      <div class="path"><b>🛠️ I prepare the release</b>
+        <a class="pstep" href="courses/b1-finding-the-quasi-identifiers.html">B1</a><span class="parr">→</span><a class="pstep" href="courses/b2-generalise-and-suppress-to-k.html">B2</a><span class="parr">→</span><a class="pstep" href="courses/b3-when-k-is-not-enough.html">B3</a><span class="parr">→</span><a class="pstep" href="courses/b4-the-linkage-attack.html">B4</a><span class="parr">→</span><a class="pstep" href="courses/b5-noise-with-a-guarantee.html">B5</a><span class="parr">→</span><a class="pstep" href="courses/b6-spending-a-privacy-budget.html">B6</a><span class="parr">→</span><a class="pstep" href="courses/b7-synthetic-data-and-its-leaks.html">B7</a><span class="parr">→</span><a class="pstep" href="courses/b8-the-release-desk.html">B8</a>
+        <span style="font-size:.82rem;color:var(--muted)">columns, k, l and t, the attack, noise, budget, synthetic, the bench</span>
+      </div>
+      <div class="path"><b>🛡️ I am the DPO</b>
+        <a class="pstep" href="courses/a1-pseudonymous-is-not-anonymous.html">A1</a><span class="parr">→</span><a class="pstep" href="courses/a2-the-release-environment.html">A2</a><span class="parr">→</span><a class="pstep" href="courses/b4-the-linkage-attack.html">B4</a><span class="parr">→</span><a class="pstep" href="courses/b8-the-release-desk.html">B8</a><span class="parr">→</span><a class="pstep" href="courses/a4-signing-off-a-release.html">A4</a>
+        <span style="font-size:.82rem;color:var(--muted)">the line, the route, the attack, the bench, the sign-off</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="paths" style="margin-top:0">
+      <h2>What is honest here 🧾</h2>
+      <p class="plede">The running organisation is constructed and says so on every page. The rows are real and named. Where experts disagree, the page teaches both sides.</p>
+    </div>
+    <table class="clean">
+      <tr><th>Claim</th><th>Status</th></tr>
+      <tr><td>Brightwater Social Research Institute, its people and its release requests</td><td><strong>Constructed,</strong> and labelled each time</td></tr>
+      <tr><td>The 32,561 rows: age, sex, race, marital status, education, country of birth, workclass, occupation and income band from the 1994 US Census extract</td><td><strong>Real and public:</strong> UCI Adult, Becker and Kohavi, CC BY 4.0</td></tr>
+      <tr><td>Every number on the widgets and the bench</td><td><strong>Computed in your browser</strong> from those rows; a Python reference prints the same numbers</td></tr>
+      <tr><td>The 1,000 people the attacker knows</td><td><strong>Real rows, chosen by a fixed seed;</strong> the attacker and what they know are a teaching construction</td></tr>
+      <tr><td>PDPC guidance, the founding papers and the US Census budget</td><td><strong>Read at source</strong> where the document could be opened, otherwise <strong>reported</strong>, and dated</td></tr>
+      <tr><td>How safe is "safe enough" (k thresholds, epsilon values)</td><td><strong>Contested,</strong> and taught as a judgement with the arguments on each side</td></tr>
+    </table>
+  </section>
+
+  <section class="section mm-section">
+    <h2>The knowledge map 🧠</h2>
+    <p class="mm-lede">Both tracks at a glance - hover a session to spotlight its concepts, click any node to jump in.</p>
+    <div class="mm-wrap"><div id="mindmap"></div></div>
+  </section>
+
+  <footer class="pagefoot">
+    <span>learn-privacy-engineering-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span>Neighbours on the shelf: <a href="https://phoebefu6.github.io/learn-pdpa-dnc-with-phoebe/">PDPA and DNC ↗</a> &nbsp;·&nbsp; <a href="https://phoebefu6.github.io/learn-data-access-control-with-phoebe/">Data Access Control ↗</a> &nbsp;·&nbsp; <a href="https://phoebefu6.github.io/learn-data-monetisation-with-phoebe/">Data Monetisation ↗</a></span>
+  </footer>
+
+</main>
+
+<script>
+window.MINDMAP_DATA = {
+  "title": "Privacy\nengineering",
+  "centerColor": "#4A4700",
+  "sessions": [
+    {
+      "label": "Pseudonymous is\nnot anonymous",
+      "href": "courses/a1-pseudonymous-is-not-anonymous.html",
+      "color": "#34D399",
+      "concepts": [
+        {
+          "label": "Pseudonymised vs anonymised",
+          "href": "courses/a1-pseudonymous-is-not-anonymous.html"
+        },
+        {
+          "label": "Uniqueness on the rows",
+          "href": "courses/a1-pseudonymous-is-not-anonymous.html"
+        },
+        {
+          "label": "Releases that failed",
+          "href": "courses/a1-pseudonymous-is-not-anonymous.html"
+        }
+      ]
+    },
+    {
+      "label": "The release\nenvironment",
+      "href": "courses/a2-the-release-environment.html",
+      "color": "#34D399",
+      "concepts": [
+        {
+          "label": "Three release routes",
+          "href": "courses/a2-the-release-environment.html"
+        },
+        {
+          "label": "Recipient controls",
+          "href": "courses/a2-the-release-environment.html"
+        },
+        {
+          "label": "The realistic intruder",
+          "href": "courses/a2-the-release-environment.html"
+        }
+      ]
+    },
+    {
+      "label": "Choosing the\ntechnique",
+      "href": "courses/a3-choosing-the-technique.html",
+      "color": "#FBBF24",
+      "concepts": [
+        {
+          "label": "PDPC's technique list",
+          "href": "courses/a3-choosing-the-technique.html"
+        },
+        {
+          "label": "Protection vs usefulness",
+          "href": "courses/a3-choosing-the-technique.html"
+        },
+        {
+          "label": "Matching tool to release",
+          "href": "courses/a3-choosing-the-technique.html"
+        }
+      ]
+    },
+    {
+      "label": "Signing off\na release",
+      "href": "courses/a4-signing-off-a-release.html",
+      "color": "#FB923C",
+      "concepts": [
+        {
+          "label": "Thresholds you can defend",
+          "href": "courses/a4-signing-off-a-release.html"
+        },
+        {
+          "label": "The attack test",
+          "href": "courses/a4-signing-off-a-release.html"
+        },
+        {
+          "label": "The release record",
+          "href": "courses/a4-signing-off-a-release.html"
+        }
+      ]
+    },
+    {
+      "label": "Finding the\nquasi-identifiers",
+      "href": "courses/b1-finding-the-quasi-identifiers.html",
+      "color": "#34D399",
+      "concepts": [
+        {
+          "label": "Three kinds of column",
+          "href": "courses/b1-finding-the-quasi-identifiers.html"
+        },
+        {
+          "label": "Equivalence classes",
+          "href": "courses/b1-finding-the-quasi-identifiers.html"
+        },
+        {
+          "label": "The uniqueness climb",
+          "href": "courses/b1-finding-the-quasi-identifiers.html"
+        }
+      ]
+    },
+    {
+      "label": "Generalise and\nsuppress to k",
+      "href": "courses/b2-generalise-and-suppress-to-k.html",
+      "color": "#34D399",
+      "concepts": [
+        {
+          "label": "Hierarchies",
+          "href": "courses/b2-generalise-and-suppress-to-k.html"
+        },
+        {
+          "label": "Suppression",
+          "href": "courses/b2-generalise-and-suppress-to-k.html"
+        },
+        {
+          "label": "What k costs",
+          "href": "courses/b2-generalise-and-suppress-to-k.html"
+        }
+      ]
+    },
+    {
+      "label": "When k is\nnot enough",
+      "href": "courses/b3-when-k-is-not-enough.html",
+      "color": "#FBBF24",
+      "concepts": [
+        {
+          "label": "Homogeneity",
+          "href": "courses/b3-when-k-is-not-enough.html"
+        },
+        {
+          "label": "l-diversity",
+          "href": "courses/b3-when-k-is-not-enough.html"
+        },
+        {
+          "label": "t-closeness",
+          "href": "courses/b3-when-k-is-not-enough.html"
+        }
+      ]
+    },
+    {
+      "label": "The linkage\nattack",
+      "href": "courses/b4-the-linkage-attack.html",
+      "color": "#FBBF24",
+      "concepts": [
+        {
+          "label": "The join",
+          "href": "courses/b4-the-linkage-attack.html"
+        },
+        {
+          "label": "Prosecutor risk",
+          "href": "courses/b4-the-linkage-attack.html"
+        },
+        {
+          "label": "The forgotten column",
+          "href": "courses/b4-the-linkage-attack.html"
+        }
+      ]
+    },
+    {
+      "label": "Noise with a\nguarantee",
+      "href": "courses/b5-noise-with-a-guarantee.html",
+      "color": "#FB923C",
+      "concepts": [
+        {
+          "label": "The definition",
+          "href": "courses/b5-noise-with-a-guarantee.html"
+        },
+        {
+          "label": "Sensitivity",
+          "href": "courses/b5-noise-with-a-guarantee.html"
+        },
+        {
+          "label": "Laplace noise",
+          "href": "courses/b5-noise-with-a-guarantee.html"
+        }
+      ]
+    },
+    {
+      "label": "Spending a\nprivacy budget",
+      "href": "courses/b6-spending-a-privacy-budget.html",
+      "color": "#FB923C",
+      "concepts": [
+        {
+          "label": "Composition",
+          "href": "courses/b6-spending-a-privacy-budget.html"
+        },
+        {
+          "label": "Post-processing",
+          "href": "courses/b6-spending-a-privacy-budget.html"
+        },
+        {
+          "label": "A real budget",
+          "href": "courses/b6-spending-a-privacy-budget.html"
+        }
+      ]
+    },
+    {
+      "label": "Synthetic data\nand its leaks",
+      "href": "courses/b7-synthetic-data-and-its-leaks.html",
+      "color": "#FB923C",
+      "concepts": [
+        {
+          "label": "Utility lost",
+          "href": "courses/b7-synthetic-data-and-its-leaks.html"
+        },
+        {
+          "label": "Memorised rows",
+          "href": "courses/b7-synthetic-data-and-its-leaks.html"
+        },
+        {
+          "label": "Testing a generator",
+          "href": "courses/b7-synthetic-data-and-its-leaks.html"
+        }
+      ]
+    },
+    {
+      "label": "The Release\nDesk",
+      "href": "courses/b8-the-release-desk.html",
+      "color": "#F87171",
+      "concepts": [
+        {
+          "label": "The ladder",
+          "href": "courses/b8-the-release-desk.html"
+        },
+        {
+          "label": "The trap preset",
+          "href": "courses/b8-the-release-desk.html"
+        },
+        {
+          "label": "The break button",
+          "href": "courses/b8-the-release-desk.html"
+        }
+      ]
+    }
+  ]
+};
+</script>
+<script src="assets/mindmap.js?v=1"></script>
+<script src="assets/app.js?v=1"></script>
+</body>
+</html>

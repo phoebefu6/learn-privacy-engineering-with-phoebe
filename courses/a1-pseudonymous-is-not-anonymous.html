@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Leader session 1 of 4. Why removing names is not anonymisation: PDPC's serious-possibility test, the line between pseudonymised and anonymised data, how ordinary facts single people out on 32,561 real census rows, and three releases that were undone.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Pseudonymous is not anonymous - learn privacy engineering with phoebe">
+<meta property="og:description" content="Leader session 1 of 4. Names gone, 17.18% of real people still alone on six ordinary facts. Where the line actually is.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/courses/a1-pseudonymous-is-not-anonymous.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Pseudonymous is not anonymous - learn privacy engineering with phoebe">
+<meta name="twitter:description" content="Leader session 1 of 4. The serious-possibility test, the uniqueness of ordinary facts, three releases that were undone.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Leader session 1 · Pseudonymous is not anonymous - learn privacy engineering with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=2">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-privacy-engineering-with-phoebe</a> / Leader session 1 of 4</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Privacy Engineering with Phoebe · Leader session 1 of 4</div>
+    <h1>Pseudonymous is not <span class="accent">anonymous</span></h1>
+    <p class="sub">"We removed the names, so it is anonymous." It is the most common sentence in a data-sharing request and it is almost never true. Tonight: where Singapore's regulator draws the line between pseudonymised and anonymised data, why the test is about re-identification risk rather than which columns were deleted, how six ordinary facts single out more than one in six people on real census rows, and three famous releases that were undone by exactly that.</p>
+    <div class="chip-row">
+      <span class="chip level">🟢 Leader</span>
+      <span class="chip audience">DPOs, heads of data and product leads who approve a release</span>
+      <span class="chip audience">No code</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · The line, the facts, the failures</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: the five questions</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where we start</h2>
+    </div>
+    <p class="lede">The Leader track is for the people who decide whether a dataset may leave the building: the data protection officer, the head of data, the product or research lead who promised a partner a file. Four sessions: tonight, what anonymous means in practice; then how the release route changes the risk; then which technique fits which release; then how to sign off with a record someone else can check. No code; the Engineer track builds the numbers. Brightwater Social Research Institute, a Singapore research trust asked to share an extract with three university partners, is constructed and labelled. The rows behind every number are real: 32,561 people from the UCI Adult extract of the 1994 US Census.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">★ Build-along = everyone works it through</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> The five questions to ask before you approve any "it is anonymised" request, answered once for Brightwater's extract with a measured number, and the one sentence that separates pseudonymised from anonymised data in a way your engineers and your lawyers will both accept.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers the PDPC test</span>
+      <h2>The line is drawn by risk, not by columns</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Data moves along a line. Identified data names the person. Pseudonymised data has the names and ID numbers replaced, while someone, somewhere, still holds the key or the other columns that lead back. Anonymised data is data where re-identification is no longer a serious possibility. PDPC's guidelines put the test in those terms: data is not considered anonymised if there is a serious possibility that an individual could be re-identified, taking into account both the data and what the recipient has or is likely to have access to, and the safeguards around it.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn line with three stations. Identified: name, NRIC, all columns. Pseudonymised: names and IDs replaced, a key or the remaining columns still lead back, still personal data. Anonymised, in olive: no serious possibility of re-identification given the data, what the recipient can access, and the safeguards. An arrow between pseudonymised and anonymised is labelled the hard part, and the gap between them is drawn in plum: removing names moves data only from the first station to the second.">
+        <defs>
+          <filter id="a1aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a1aHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="a1aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a1aH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .a1aL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .a1aS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .a1aB { font: 800 11px Inter, sans-serif; fill: #5C1A33; }
+          .a1aW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .a1aV { font: 400 11px Inter, sans-serif; fill: #FFFFFF; }
+          .a1aN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="a1aH" x="30" y="28">THREE STATIONS, AND THE GAP MOST RELEASES NEVER CROSS</text>
+
+        <g filter="url(#a1aSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="56" width="220" height="150" rx="12" transform="rotate(-0.8 140 131)" fill="#FFFFFF"/>
+          <rect x="320" y="56" width="230" height="150" rx="12" transform="rotate(0.6 435 131)" fill="url(#a1aHc)"/>
+          <rect x="640" y="56" width="210" height="150" rx="12" transform="rotate(-0.6 745 131)" fill="#7A7600" stroke="#7A7600"/>
+          <path d="M256 131 L314 131" marker-end="url(#a1aAr)"/>
+          <path d="M556 131 L634 131" marker-end="url(#a1aAr)" stroke="#8E2A4F" stroke-width="3"/>
+          <rect x="554" y="222" width="90" height="34" rx="8" transform="rotate(-2 599 239)" fill="#FBEEF3" stroke="#8E2A4F"/>
+          <!-- doodle: a key on the middle station -->
+          <circle cx="520" cy="186" r="7" stroke="#4A4700"/>
+          <path d="M527 186 L542 186 M536 186 L536 192 M540 186 L540 191" stroke="#4A4700"/>
+        </g>
+
+        <rect x="332" y="68" width="206" height="104" rx="8" fill="#FFFFFF"/>
+
+        <text class="a1aH" x="46" y="82">IDENTIFIED</text>
+        <text class="a1aL" x="46" y="108">name, NRIC, phone</text>
+        <text class="a1aL" x="46" y="128">and every other column</text>
+        <text class="a1aS" x="46" y="160">personal data</text>
+        <text class="a1aS" x="262" y="122">remove names</text>
+
+        <text class="a1aH" x="344" y="88">PSEUDONYMISED</text>
+        <text class="a1aL" x="344" y="112">names and IDs replaced</text>
+        <text class="a1aS" x="344" y="132">a key, or the columns left,</text>
+        <text class="a1aS" x="344" y="148">still lead back to people</text>
+        <text class="a1aS" x="344" y="164">still personal data</text>
+
+        <text class="a1aW" x="656" y="82">ANONYMISED</text>
+        <text class="a1aV" x="656" y="106">no serious possibility</text>
+        <text class="a1aV" x="656" y="122">of re-identification, given</text>
+        <text class="a1aV" x="656" y="142">1 · the data and what the</text>
+        <text class="a1aV" x="656" y="158">recipient can access</text>
+        <text class="a1aV" x="656" y="178">2 · the safeguards around it</text>
+
+        <text class="a1aB" x="566" y="244">the hard part</text>
+
+        <text class="a1aN" x="30" y="290">The test, paraphrased from PDPC's Advisory Guidelines on Selected Topics, para 3.4. Whether data is personal</text>
+        <text class="a1aN" x="30" y="308">data in law is a legal question; the PDPA and GDPR courses own it. This track measures the risk.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - removing names moves data one station, never two</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What the test asks, in plain words<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Not "did you delete the identifiers?"</strong> PDPC treats removing direct identifiers as a required step, and its Guide to Basic Anonymisation calls de-identification only the first step of anonymisation. The test is what is left.</p>
+        <p><strong>"Could this person be re-identified, seriously?"</strong> The guidelines weigh the data together with other information the recipient has or is likely to have, and the measures and safeguards, or the lack of them. Their listed factors: how much the data was altered, how widely it is disclosed, what other information is available, and the recipients' ability and motivation to re-identify.</p>
+        <p><strong>"Still true next year?"</strong> The guidelines note that the effectiveness of anonymisation may degrade over time and recommend periodic review. Anonymised is a state you maintain, not a label you stamp once.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The same distinction in the EU<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The GDPR defines pseudonymisation in Article 4(5) as processing so that data can no longer be attributed to a person without additional information kept separately, and Recital 26 says the principles of data protection should not apply to anonymous information. Pseudonymised data stays in scope; anonymous data falls outside it. How the two regimes compare, and what that means for a Singapore company with EU data, is covered in <a href="https://phoebefu6.github.io/learn-gdpr-with-phoebe/">GDPR ↗</a>. The engineering question, how much risk is left, is the same under both.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>"We hashed the NRIC."</strong> Ravi Menon, Brightwater's data engineer, replaced every identity number with a hash before the first draft of the extract went to review. Lim Su-Ann, the DPO, asked one question: what else is in the file? Age, sex, race, marital status, education, country of birth, workclass, occupation, income. The hash took the file from the first station to the second. Everything in this track is about the gap to the third. Constructed Brightwater example; the pattern is the common one.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers uniqueness on the rows</span>
+      <h2>Ordinary facts single people out</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Re-identification rarely needs a secret. It needs a combination. On Brightwater's real rows, age alone leaves 2 people of 32,561 with nobody else of their age. Add sex, race, marital status, education and country of birth, six facts a colleague could know, and 5,594 people, 17.18%, share their combination with nobody in the file. Anyone who knows those six facts about one of them can find their row and read the rest.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three hand-drawn panels showing how many people ordinary facts single out. Left, in olive, Brightwater's real rows: 17.18 percent of 32,561 people are alone on six facts, 27.78 percent with workclass added. Middle: Sweeney's estimate from 1990 US Census figures, 87 percent likely unique on 5-digit ZIP, date of birth and sex. Right: Golle's re-estimate on the 2000 Census, 63 percent. A note says the three numbers measure different columns and populations and are not a trend.">
+        <defs>
+          <filter id="a1bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="13" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a1bHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="a1bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a1bH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .a1bL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .a1bS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .a1bV { font: 800 20px Inter, sans-serif; fill: #4A4700; }
+          .a1bW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .a1bX { font: 800 20px Inter, sans-serif; fill: #FFFFFF; }
+          .a1bY { font: 400 11px Inter, sans-serif; fill: #FFFFFF; }
+          .a1bN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="a1bH" x="30" y="28">HOW MANY PEOPLE ARE ALONE ON A FEW ORDINARY FACTS</text>
+
+        <g filter="url(#a1bSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="50" width="260" height="214" rx="12" transform="rotate(-0.8 160 157)" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="320" y="50" width="250" height="214" rx="12" transform="rotate(0.6 445 157)" fill="#FFFFFF"/>
+          <rect x="600" y="50" width="250" height="214" rx="12" transform="rotate(-0.5 725 157)" fill="url(#a1bHc)"/>
+          <!-- doodle: a single stick figure apart from a group on the left panel -->
+          <circle cx="250" cy="226" r="6" stroke="#FFFFFF"/>
+          <path d="M250 232 L250 248 M242 240 L258 240" stroke="#FFFFFF"/>
+        </g>
+
+        <rect x="612" y="62" width="226" height="186" rx="8" fill="#FFFFFF"/>
+
+        <text class="a1bW" x="48" y="76">BRIGHTWATER'S REAL ROWS</text>
+        <text class="a1bY" x="48" y="94">32,561 people, UCI Adult</text>
+        <text class="a1bX" x="48" y="130">17.18%</text>
+        <text class="a1bY" x="48" y="150">alone on age, sex, race, marital,</text>
+        <text class="a1bY" x="48" y="166">education, country of birth</text>
+        <text class="a1bX" x="48" y="204">27.78%</text>
+        <text class="a1bY" x="48" y="224">add workclass</text>
+
+        <text class="a1bH" x="338" y="76">SWEENEY, 1990 FIGURES</text>
+        <text class="a1bS" x="338" y="94">whole US population</text>
+        <text class="a1bV" x="338" y="130">87%</text>
+        <text class="a1bL" x="338" y="150">likely unique on</text>
+        <text class="a1bL" x="338" y="168">5-digit ZIP, date of birth</text>
+        <text class="a1bL" x="338" y="186">and sex</text>
+        <text class="a1bS" x="338" y="222">an estimate from census</text>
+        <text class="a1bS" x="338" y="238">summaries, not a test</text>
+
+        <text class="a1bH" x="624" y="80">GOLLE, 2000 CENSUS</text>
+        <text class="a1bS" x="624" y="98">same three facts</text>
+        <text class="a1bV" x="624" y="134">63%</text>
+        <text class="a1bL" x="624" y="154">uniquely identified on</text>
+        <text class="a1bL" x="624" y="172">ZIP, full date of birth</text>
+        <text class="a1bL" x="624" y="190">and sex</text>
+        <text class="a1bS" x="624" y="226">still a majority</text>
+
+        <text class="a1bN" x="30" y="296">Different columns, years and methods: three measurements, not a trend. Each says the same thing: a few</text>
+        <text class="a1bN" x="30" y="314">ordinary facts single out a large share of people. The left panel is computed; the other two are reported.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the left panel is your own kind of file; the other two are whole populations</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Why it falls hardest on the few<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Rare combinations are empty.</strong> Six columns with 73, 2, 5, 7, 16 and 42 values allow 3,433,920 combinations, for 32,561 people. Most people sit in the common combinations; the rest are alone.</p>
+        <p><strong>The alone are not random.</strong> 29,170 of the rows are US-born. The 2,808 born elsewhere, the small racial groups, the rare degrees, are the ones in classes of one. An unsafe release exposes minorities and migrants first.</p>
+        <p><strong>A leader's number.</strong> Ask your engineers for the share of rows in a class of one, on the columns an outsider could know. It is one number, it takes minutes, and it ends the "we removed the names" conversation.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The 99.98% figure, and why it is a model<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Rocher, Hendrickx and de Montjoye (Nature Communications, 2019) fitted a statistical model that estimated 99.98% of Americans would be correctly re-identified in any dataset using 15 demographic attributes. It is widely quoted as a measurement. It is a model estimate, validated on many populations with good but imperfect accuracy, and the body of the paper states the figure for Massachusetts. Quote it as an estimate, and pair it with your own file's measured share.</p>
+      </div>
+    </details>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers releases that failed</span>
+      <h2>Three releases that were undone</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Every famous re-identification has the same three parts: something was removed, something ordinary was left, and somebody outside already knew the ordinary thing. Learn the shape once and you will see it in every release request.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three hand-drawn cards with the same three rows. Massachusetts hospital records, 1990s: removed names; left ZIP, birth date and sex; outsider's knowledge the Cambridge voter list bought for twenty dollars; the governor's record found. AOL search logs, 2006: removed user names, replaced by numbers; left about 20 million search queries; outsider's knowledge local reporting; user 4417749 found. Netflix Prize, 2006: removed names; left movie ratings with dates; outsider's knowledge public IMDb reviews; known users found. The outsider row is drawn in plum on every card.">
+        <defs>
+          <filter id="a1cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="19" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a1cHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="a1cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a1cH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .a1cL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .a1cS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .a1cA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .a1cW { font: 800 11px Inter, sans-serif; fill: #FFFFFF; }
+          .a1cV { font: 600 12px Inter, sans-serif; fill: #FFFFFF; }
+          .a1cN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="a1cH" x="30" y="28">REMOVED · LEFT · ALREADY KNOWN OUTSIDE</text>
+
+        <g filter="url(#a1cSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="48" width="260" height="236" rx="12" transform="rotate(-0.8 160 166)" fill="#FFFFFF"/>
+          <rect x="310" y="48" width="260" height="236" rx="12" transform="rotate(0.6 440 166)" fill="#FFFFFF"/>
+          <rect x="590" y="48" width="260" height="236" rx="12" transform="rotate(-0.6 720 166)" fill="#FFFFFF"/>
+          <rect x="42" y="178" width="236" height="56" rx="8" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="322" y="178" width="236" height="56" rx="8" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="602" y="178" width="236" height="56" rx="8" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <!-- doodle: a tiny ballot box on the first card -->
+          <rect x="250" y="250" width="22" height="16" stroke="#4A4700"/>
+          <path d="M256 250 L266 250" stroke="#4A4700"/>
+        </g>
+
+        <text class="a1cH" x="48" y="72">MASSACHUSETTS, 1990s</text>
+        <text class="a1cS" x="48" y="88">state employees' hospital records</text>
+        <text class="a1cA" x="48" y="112">REMOVED</text>
+        <text class="a1cL" x="48" y="128">names</text>
+        <text class="a1cA" x="48" y="150">LEFT</text>
+        <text class="a1cL" x="48" y="166">ZIP, birth date, sex</text>
+        <text class="a1cW" x="54" y="198">ALREADY KNOWN OUTSIDE</text>
+        <text class="a1cV" x="54" y="218">voter list, twenty dollars</text>
+        <text class="a1cS" x="48" y="256">the governor's record</text>
+
+        <text class="a1cH" x="328" y="72">AOL, 2006</text>
+        <text class="a1cS" x="328" y="88">about 20 million web searches</text>
+        <text class="a1cA" x="328" y="112">REMOVED</text>
+        <text class="a1cL" x="328" y="128">user names, now numbers</text>
+        <text class="a1cA" x="328" y="150">LEFT</text>
+        <text class="a1cL" x="328" y="166">the queries themselves</text>
+        <text class="a1cW" x="334" y="198">ALREADY KNOWN OUTSIDE</text>
+        <text class="a1cV" x="334" y="218">towns, shops, a surname</text>
+        <text class="a1cS" x="328" y="256">user 4417749, found</text>
+
+        <text class="a1cH" x="608" y="72">NETFLIX PRIZE, 2006</text>
+        <text class="a1cS" x="608" y="88">ratings, about 500,000 people</text>
+        <text class="a1cA" x="608" y="112">REMOVED</text>
+        <text class="a1cL" x="608" y="128">names, now numbers</text>
+        <text class="a1cA" x="608" y="150">LEFT</text>
+        <text class="a1cL" x="608" y="166">ratings with dates</text>
+        <text class="a1cW" x="614" y="198">ALREADY KNOWN OUTSIDE</text>
+        <text class="a1cV" x="614" y="218">public IMDb reviews</text>
+        <text class="a1cS" x="608" y="256">known users, found</text>
+
+        <text class="a1cN" x="30" y="314">Reported from Sweeney 2002, The New York Times (9 August 2006) and Narayanan and Shmatikov 2008.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the plum row is the one nobody wrote down in the release request</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>What each one teaches a leader<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Massachusetts.</strong> The insurer released about 135,000 state employees' and families' records with names removed. Latanya Sweeney bought the Cambridge voter list for twenty dollars. Six people on it shared the governor's birth date, three were men, and he was the only one in his ZIP code. Lesson: the outsider's knowledge is often public and cheap.</p>
+        <p><strong>AOL.</strong> Reporters from The New York Times followed the searches of user 4417749 to Thelma Arnold, a 62-year-old widow in Lilburn, Georgia. Lesson: any column about a person can identify, including free text nobody listed as a quasi-identifier.</p>
+        <p><strong>Netflix.</strong> Narayanan and Shmatikov showed that 8 ratings, 2 of which could be wrong, with dates known to within 14 days, single out 99% of records, and that public IMDb reviews were enough to find known users. Lesson: sparse, rich data is identifying even when every single value is common.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Why "nobody would bother" is not a defence<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>PDPC's guidelines describe a motivated intruder test as good practice: assume someone reasonably competent and motivated, with the internet and public directories, but no special equipment and no criminal methods. Each of the three cases above was done by a researcher or a reporter, not a criminal. The guidelines also state that unauthorised re-identification of anonymised information is an offence under Part 9B of the PDPA, which deters some intruders and not others. Leader session 2 sizes the intruder for each release route.</p>
+      </div>
+    </details>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Five questions before you approve a release</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">Dr Hana Seow, Brightwater's research director, has promised three university partners the extract by the end of the month. Ravi says it is anonymised because the identity numbers are hashed. Lim Su-Ann has to approve it. Work through the five questions she asks, answer each one for Brightwater, and measure the fourth yourself in the widget below; then do the same for a release request at your own organisation.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Five hand-drawn question cards in a row: what was removed, what was left, who receives it, what could they already know, how many people are alone. The fifth card, how many are alone, is filled in olive and has a measured answer for Brightwater, 17.18 percent.">
+        <defs>
+          <filter id="a1dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="23" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a1dHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="a1dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a1dH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .a1dL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .a1dS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .a1dW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .a1dV { font: 400 11px Inter, sans-serif; fill: #FFFFFF; }
+          .a1dX { font: 800 16px Inter, sans-serif; fill: #FFFFFF; }
+          .a1dN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="a1dH" x="30" y="28">THE FIVE QUESTIONS, IN THE ORDER THEY ARE ASKED</text>
+
+        <g filter="url(#a1dSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="50" width="146" height="130" rx="12" transform="rotate(-1 103 115)" fill="#FFFFFF"/>
+          <rect x="200" y="50" width="146" height="130" rx="12" transform="rotate(0.8 273 115)" fill="#FFFFFF"/>
+          <rect x="370" y="50" width="146" height="130" rx="12" transform="rotate(-0.6 443 115)" fill="url(#a1dHc)"/>
+          <rect x="540" y="50" width="146" height="130" rx="12" transform="rotate(0.7 613 115)" fill="url(#a1dHc)"/>
+          <rect x="710" y="50" width="140" height="130" rx="12" transform="rotate(-0.8 780 115)" fill="#7A7600" stroke="#7A7600"/>
+          <!-- doodle: a question mark on the first card -->
+          <path d="M150 150 Q150 138 160 138 Q170 138 170 148 Q170 156 160 158 L160 164" stroke="#4A4700"/>
+        </g>
+
+        <rect x="380" y="62" width="126" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="550" y="62" width="126" height="72" rx="6" fill="#FFFFFF"/>
+
+        <text class="a1dL" x="44" y="80">1 · Removed?</text>
+        <text class="a1dS" x="44" y="100">which columns</text>
+        <text class="a1dS" x="44" y="116">and how</text>
+        <text class="a1dL" x="214" y="80">2 · Left?</text>
+        <text class="a1dS" x="214" y="100">every column</text>
+        <text class="a1dS" x="214" y="116">still in the file</text>
+        <text class="a1dL" x="386" y="80">3 · Who gets it?</text>
+        <text class="a1dS" x="386" y="100">and under what</text>
+        <text class="a1dS" x="386" y="116">controls</text>
+        <text class="a1dL" x="556" y="80">4 · They know?</text>
+        <text class="a1dS" x="556" y="100">what an outsider</text>
+        <text class="a1dS" x="556" y="116">could fill in</text>
+        <text class="a1dW" x="724" y="80">5 · Alone?</text>
+        <text class="a1dV" x="724" y="100">share in a class</text>
+        <text class="a1dV" x="724" y="116">of one, measured</text>
+        <text class="a1dX" x="724" y="152">17.18%</text>
+
+        <text class="a1dN" x="30" y="214">Questions 3 and 4 decide which columns question 5 is measured on. Change the recipient and the number changes.</text>
+        <text class="a1dN" x="30" y="234">Brightwater figure computed on the real rows, six columns, before any generalisation.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - only the last card needs a computer; the first four need a conversation</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Step 1 · What was removed, and how?</strong> Ask for the list, and for each one whether it was deleted or replaced. A hash or a token is a replacement: whoever holds the mapping, or can recompute the hash, can reverse it. That keeps the data pseudonymised however good the hash.</p>
+        <div class="prompt-box good"><span class="label">★ Step 1 · removed</span>column            deleted / replaced (how)      who can reverse it
+________________  ___________________________  ________________
+Brightwater: NRIC  replaced by an unsalted hash  anyone with the NRIC list</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 2 · What was left?</strong> Every remaining column, not a summary. Brightwater's extract keeps age, sex, race, marital status, education, country of birth, workclass, occupation and income band, plus a few numeric columns.</p>
+        <div class="prompt-box good"><span class="label">★ Step 2 · left in the file</span>____________________________________________________________
+Brightwater: age, sex, race, marital, education, country of birth,
+workclass, occupation, income band, hours, capital gain and loss</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 3 · Who receives it, under what controls?</strong> Name the recipients and what binds them: a data-sharing agreement, a ban on onward disclosure, a ban on re-identification, destruction at the end. Leader session 2 turns this into a risk register.</p>
+        <div class="prompt-box good"><span class="label">★ Step 3 · recipient and controls</span>recipients: ______________________  how many people: ____
+controls:   agreement Y/N · no onward disclosure Y/N · no re-identification Y/N
+            destroy by: __________
+Brightwater: 3 university teams, about 20 researchers and students</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 4 · What could they already know?</strong> For a realistic outsider, a colleague, a student, a reporter, list the columns they could fill in about someone in the file. Be generous: the three releases in Part 3 were undone by information nobody listed.</p>
+        <div class="prompt-box good"><span class="label">★ Step 4 · the outsider</span>outsider: ____________________
+could fill in: ___________________________________________
+Brightwater: a colleague knows age, sex, race, marital status,
+education and country of birth; perhaps workclass</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 5 · How many are alone?</strong> Tick the columns from step 4 in the widget and read the share in a class of one. That number goes at the top of your reply to the requester, next to the word "pseudonymised".</p>
+        <div data-pe="uniq" id="a1-uniq"></div>
+        <div class="prompt-box good"><span class="label">★ Step 5 · the reply</span>On the ___ columns an outsider could know, ____% of rows are unique.
+This file is pseudonymised, not anonymised. Before release we need: ________
+Brightwater: six columns, 17.18%, 5,594 people. Not approved as it stands.</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>Say no with a number, then a path.</strong> "Not anonymised: 17.18% are unique on six columns" is a decision a requester can act on. Follow it with the route: the Engineer track shows how coarsening and suppression take Brightwater's single-row matches from 175 of 1,000 known people to 0, and Leader session 3 covers the other tools.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before Leader session 2</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li><strong>Find one "anonymised" file.</strong> Pick a dataset your organisation has shared, or been asked to share, as anonymised. Ask the five questions about it.</li>
+      <li><strong>Get the number.</strong> Ask whoever prepared it for the share of rows in a class of one on the columns from question 4. If nobody can produce it, that is the finding.</li>
+      <li><strong>Read the test once.</strong> Read paragraphs 3.4 to 3.8 of PDPC's Advisory Guidelines on Selected Topics, Chapter 3, and underline the two limbs of the serious-possibility test.</li>
+      <li><strong>List the recipients.</strong> For that file, write who received it and what bound them. Leader session 2 starts from that list.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Leader session 1 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">1 · Ravi replaced every NRIC in the extract with a hash and kept every other column. Which station is the file at?</p>
+      <button class="qopt" type="button">A · Anonymised, because no identity number remains</button>
+      <button class="qopt" type="button">B · Pseudonymised: the identifier is replaced, and the hash and the remaining columns can still lead back to people</button>
+      <button class="qopt" type="button">C · Identified, because hashing does nothing</button>
+      <button class="qopt" type="button">D · Outside any law, because it is encrypted</button>
+      <p class="qwhy">Replacing a direct identifier is the first step only. The test is whether re-identification is still a serious possibility, and on six ordinary columns 17.18% of the rows are unique.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">2 · Under PDPC's guidelines, which two things does the serious-possibility test weigh?</p>
+      <button class="qopt" type="button">A · The file size and the encryption used</button>
+      <button class="qopt" type="button">B · Whether names were removed and whether consent was given</button>
+      <button class="qopt" type="button">C · The number of columns and the number of rows</button>
+      <button class="qopt" type="button">D · The data together with what the recipient has or can access, and the safeguards around it</button>
+      <p class="qwhy">The same file can be anonymised for one recipient under strict controls and not for the open internet. Risk lives in the data and its environment together.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">3 · What did the Massachusetts, AOL and Netflix cases have in common?</p>
+      <button class="qopt" type="button">A · Names were removed, ordinary information was left, and an outsider already knew enough of it to match</button>
+      <button class="qopt" type="button">B · Each was hacked</button>
+      <button class="qopt" type="button">C · Each released full names by mistake</button>
+      <button class="qopt" type="button">D · Each was done by a criminal with special equipment</button>
+      <p class="qwhy">A voter list, local knowledge and public reviews: in every case the outsider's information was ordinary, and the people doing it were a researcher and reporters.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The serious-possibility test, its two limbs, the four risk factors and periodic review</span><span class="note">PDPC, Advisory Guidelines on the PDPA for Selected Topics, Chapter 3, revised 23 May 2024, paras 3.4 to 3.8; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">De-identification is only the first step of anonymisation</span><span class="note">PDPC, Guide to Basic Anonymisation (2022); read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">17.18% unique on six columns, 27.78% with workclass; 3,433,920 combinations; 29,170 US-born</span><span class="note">Computed on UCI Adult (Becker and Kohavi 1996, CC BY 4.0) by the in-page engine and a pandas reference</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">87% likely unique (1990 figures) and 63% (2000 Census)</span><span class="note">Sweeney 2000, Data Privacy Working Paper 3; Golle 2006; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Massachusetts GIC, AOL user 4417749, the Netflix Prize</span><span class="note">Sweeney 2002, IJUFKS 10(5); Barbaro and Zeller, The New York Times, 9 August 2006 (archived copy); Narayanan and Shmatikov 2008; read at source</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">99.98% with 15 attributes</span><span class="note">Rocher, Hendrickx and de Montjoye, Nature Communications 10, 3069 (2019); a model estimate</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">GDPR Article 4(5) and Recital 26; re-identification as an offence under Part 9B</span><span class="note">One-line pointers; the law is owned by the GDPR and PDPA courses. Part 9B is cited as PDPC's guidelines state it (para 3.18)</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Brightwater, Dr Hana Seow, Ravi Menon, Lim Su-Ann and the partner request</span><span class="note">Constructed and labelled</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Leader session 1 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Three stations</b><span>Identified, pseudonymised, anonymised. Removing names moves one station.</span></div>
+      <div class="cheat-item"><b>The test is risk</b><span>No serious possibility of re-identification, given the data, the recipient and the safeguards.</span></div>
+      <div class="cheat-item"><b>A hash is a replacement</b><span>Whoever can reverse or recompute it holds the key. Still pseudonymised.</span></div>
+      <div class="cheat-item"><b>One number</b><span>Share of rows in a class of one, on what an outsider could know. 17.18% here.</span></div>
+      <div class="cheat-item"><b>The failure shape</b><span>Removed, left, already known outside. Write the third row down.</span></div>
+      <div class="cheat-item"><b>Five questions</b><span>Removed? Left? Who gets it? What do they know? How many alone?</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>You can tell pseudonymised from anonymised and put a number on the gap. Leader session 2 adds the other half of the test: where the data lands. Public, restricted and enclave releases, the controls a recipient can be bound by, and who the realistic intruder is for each route.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Leader session 1 of 4 · learn-privacy-engineering-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="../index.html">← Course home</a> &nbsp;·&nbsp; <a href="a2-the-release-environment.html">Next: The release environment →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/pe-data.js?v=1"></script>
+<script src="../assets/pe-engine.js?v=1"></script>
+<script src="../assets/pe-desk.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

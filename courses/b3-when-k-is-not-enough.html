@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Engineer session 3 of 8. The homogeneity and background-knowledge attacks, distinct l-diversity and t-closeness, computed on 32,561 real census rows: a k = 5 release that still gives a job away, and an income band whose l never rises above 1.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="When k is not enough - learn privacy engineering with phoebe">
+<meta property="og:description" content="Engineer session 3 of 8. Five people who look the same and share one job: why k = 5 can still leak, and what l and t measure.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/courses/b3-when-k-is-not-enough.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="When k is not enough - learn privacy engineering with phoebe">
+<meta name="twitter:description" content="Engineer session 3 of 8. Homogeneity, l-diversity and t-closeness on real rows.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Engineer session 3 · When k is not enough - learn privacy engineering with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=2">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-privacy-engineering-with-phoebe</a> / Engineer session 3 of 8</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Privacy Engineering with Phoebe · Engineer session 3 of 8</div>
+    <h1>When k is <span class="accent">not enough</span></h1>
+    <p class="sub">Ravi's release now has k = 5: nobody in it can be singled out, and it meets the minimum PDPC's guidelines set for sharing with an external party. It still tells an outsider what some people do for a living, because five people who look the same can also share the same job. Tonight: the homogeneity attack, the l that counts distinct sensitive values in every class, the t that measures how far a class's mix sits from the whole table, and the numbers for both on 32,561 real census rows.</p>
+    <div class="chip-row">
+      <span class="chip level">🟡 Engineer</span>
+      <span class="chip audience">Data engineers and analysts who prepare a release</span>
+      <span class="chip audience">The in-page widget, node optional</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Homogeneity, l, t</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: the class that gives the job away</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where we start</h2>
+    </div>
+    <p class="lede">Engineer session 2 ended at rung 4 of the ladder: five columns coarsened, every class under 5 suppressed, 725 rows (2.23%) withheld, and k = 5 on the real rows. k answers one question: can an outsider point at a single row? It says nothing about what the rows in a class have in common. Tonight the question changes from "who is this?" to "what do I now know about them?". Brightwater Social Research Institute and its people are constructed; the 32,561 rows from the UCI Adult extract of the 1994 US Census are real, and every l and t on this page is computed on them.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">★ Build-along = everyone works it through</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> A three-step check you can run on any release (k per class, l per class, t per class); the l and t of Brightwater's rungs 4, 5 and 6 for both sensitive columns, read off the real rows; a written rule for a sensitive column with only two values; and the line that goes in the release record so a reviewer can see which of the three checks the file passed.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers the homogeneity attack</span>
+      <h2>Five people who look the same can share one secret</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">k-anonymity hides a person among k look-alikes. If those look-alikes all have the same sensitive value, hiding among them protects nothing: the outsider does not need to know which row is their neighbour, because every row says the same thing. Machanavajjhala and colleagues named this the homogeneity attack, and paired it with a second one, the background-knowledge attack, in the paper that introduced l-diversity.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Left, an outsider's note about a neighbour: aged 40 to 49, female, white, never married, bachelor's degree, born outside the US. An arrow leads to one published class of five rows at rung 4, and every one of the five rows reads Prof-specialty. Right, a plum panel: k is 5, so she is one of five; l is 1, so all five share one job, and the outsider has learned it without knowing which row is hers.">
+        <defs>
+          <filter id="b3aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="31" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b3aHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b3aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b3aH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b3aL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b3aS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b3aB { font: 800 11px Inter, sans-serif; fill: #5C1A33; }
+          .b3aW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b3aX { font: 800 18px Inter, sans-serif; fill: #FFFFFF; }
+          .b3aN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b3aH" x="30" y="28">THE OUTSIDER CANNOT FIND HER ROW, AND DOES NOT NEED TO</text>
+
+        <g filter="url(#b3aSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="60" width="220" height="180" rx="12" transform="rotate(-1.2 140 150)" fill="#FFFFFF"/>
+          <rect x="300" y="52" width="300" height="214" rx="12" transform="rotate(0.5 450 159)" fill="url(#b3aHc)"/>
+          <rect x="320" y="92" width="260" height="26" rx="6" transform="rotate(-0.8 450 105)" fill="#FFFFFF"/>
+          <rect x="320" y="124" width="260" height="26" rx="6" transform="rotate(0.6 450 137)" fill="#FFFFFF"/>
+          <rect x="320" y="156" width="260" height="26" rx="6" transform="rotate(-0.5 450 169)" fill="#FFFFFF"/>
+          <rect x="320" y="188" width="260" height="26" rx="6" transform="rotate(0.7 450 201)" fill="#FFFFFF"/>
+          <rect x="320" y="220" width="260" height="26" rx="6" transform="rotate(-0.6 450 233)" fill="#FFFFFF"/>
+          <rect x="640" y="52" width="210" height="214" rx="12" transform="rotate(-0.6 745 159)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <path d="M256 150 L294 150" marker-end="url(#b3aAr)"/>
+          <path d="M606 159 L634 159" marker-end="url(#b3aAr)"/>
+          <!-- doodle: the neighbour's house on the outsider's note -->
+          <path d="M196 214 L214 198 L232 214 M200 212 L200 230 L228 230 L228 212" stroke="#4A4700"/>
+        </g>
+
+        <rect x="314" y="62" width="272" height="22" rx="6" fill="#FFFFFF"/>
+
+        <text class="b3aH" x="48" y="86">THE OUTSIDER KNOWS</text>
+        <text class="b3aS" x="48" y="104">about the woman next door</text>
+        <text class="b3aL" x="48" y="130">aged 40-49</text>
+        <text class="b3aL" x="48" y="150">female · white</text>
+        <text class="b3aL" x="48" y="170">never married</text>
+        <text class="b3aL" x="48" y="190">bachelor's degree</text>
+        <text class="b3aL" x="48" y="210">born outside the US</text>
+
+        <text class="b3aH" x="322" y="78">ONE PUBLISHED CLASS OF 5, RUNG 4</text>
+        <text class="b3aS" x="334" y="110">row 1</text>
+        <text class="b3aB" x="456" y="110">Prof-specialty</text>
+        <text class="b3aS" x="334" y="142">row 2</text>
+        <text class="b3aB" x="456" y="142">Prof-specialty</text>
+        <text class="b3aS" x="334" y="174">row 3</text>
+        <text class="b3aB" x="456" y="174">Prof-specialty</text>
+        <text class="b3aS" x="334" y="206">row 4</text>
+        <text class="b3aB" x="456" y="206">Prof-specialty</text>
+        <text class="b3aS" x="334" y="238">row 5</text>
+        <text class="b3aB" x="456" y="238">Prof-specialty</text>
+
+        <text class="b3aX" x="658" y="92">k = 5</text>
+        <text class="b3aW" x="658" y="114">she is one of five</text>
+        <text class="b3aX" x="658" y="156">l = 1</text>
+        <text class="b3aW" x="658" y="178">all five share one job</text>
+        <text class="b3aW" x="658" y="220">learned: her job,</text>
+        <text class="b3aW" x="658" y="238">without her row</text>
+
+        <text class="b3aN" x="30" y="292">Real rows: rung 4 has k 5 and l 1, with 5 rows in single-occupation classes. Rung 1 has 6,331 such rows.</text>
+        <text class="b3aN" x="30" y="312">The class shown is the one the widget's smallest-classes table prints first at rung 4.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - k hides the row; it does not hide what every row in the class says</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Two attacks from one paper<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Homogeneity.</strong> In the paper's example, Alice reads a 4-anonymous hospital inpatient table and knows enough about her neighbour to find his class of four. Every patient in that class has the same disease. k = 4 held; the neighbour's diagnosis leaked anyway. The paper's own summary is that k-anonymity "does not guarantee privacy against attackers using background knowledge".</p>
+        <p><strong>Background knowledge.</strong> In the second example Alice knows Umeko, a 21-year-old Japanese woman in ZIP code 13068. Her class has more than one disease, but Alice also knows something about Umeko that rules some of them out. A class with a few values can collapse to one in the hands of someone who knows the person. Distinct values are a floor, not a guarantee.</p>
+        <p><strong>On Brightwater's rows.</strong> At rung 4 the desk prints k 5 and l 1. Only 5 rows sit in a class where everyone shares one occupation, and none of the 1,000 people the outsider knows is among them, so the linkage attack reads 0 while l still reads 1. A different outsider, one who knows one of those five women, reads her job off the file. At rung 1, before any coarsening, 6,331 rows are in single-occupation classes.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Where PDPC leaves it<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>PDPC's Guide to Basic Anonymisation (2022) teaches k and stops there on purpose. Its footnote 11 says homogeneity attacks "can be addressed using the k-anonymity extensions l-diversity and t-closeness", and that these topics are outside the guide's scope. Step 5 of the same guide names attribute disclosure, learning something about a person without necessarily identifying their record, as one of the three disclosure risks a release must manage. So the guidance names the risk and points at the tools; the definitions come from the research papers below. What the PDPA requires of a release is a legal question: <a href="https://phoebefu6.github.io/learn-pdpa-dnc-with-phoebe/">PDPA and DNC ↗</a> owns it.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>A compliant file that still answers the question.</strong> Constructed Brightwater example on the real rows: Ravi Menon shows Dr Hana Seow the rung 4 release. k is 5, which meets the "minimum k-anonymity value of 5" PDPC's Advisory Guidelines (para 3.9) give for sharing with an external party. Then he opens the smallest published class: five women in their forties, white, never married, with a bachelor's degree, born outside the US, and every one of them in Prof-specialty. Hana's question is not whether a partner can find one of them. It is whether anyone who knows one of them can learn her job. The answer is yes.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers l-diversity</span>
+      <h2>Count the different values inside every class</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">The simplest fix for homogeneity is a count. Distinct l-diversity asks that every published class contains at least l different values of the sensitive column. The release's l is the count in its least diverse class. l = 1 means at least one class is homogeneous; l = 3 means the outsider who finds a class is still left choosing between at least three values.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 316" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three published classes of six rows each, drawn as tokens. The first class has six tokens all marked A: l is 1 and the job is given away; it is outlined in plum. The second class has three A tokens and three B tokens: l is 2. The third has two A, two B and two C: l is 3. Notes: on the real rows, occupation sensitive, rung 4 has l 1, rung 5 l 2, rung 6 l 3; income band has only two values, so l can never exceed 2.">
+        <defs>
+          <filter id="b3bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="37" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b3bHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b3bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b3bH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b3bL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b3bS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b3bB { font: 800 11px Inter, sans-serif; fill: #5C1A33; }
+          .b3bV { font: 800 18px Inter, sans-serif; fill: #4A4700; }
+          .b3bP { font: 800 18px Inter, sans-serif; fill: #5C1A33; }
+          .b3bW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b3bN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b3bH" x="30" y="28">SIX ROWS PER CLASS, AND HOW MANY DIFFERENT JOBS THEY HOLD</text>
+
+        <g filter="url(#b3bSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="52" width="250" height="180" rx="12" transform="rotate(-0.6 155 142)" fill="#FFFFFF" stroke="#8E2A4F"/>
+          <rect x="315" y="52" width="250" height="180" rx="12" transform="rotate(0.5 440 142)" fill="#F7F6E4"/>
+          <rect x="600" y="52" width="250" height="180" rx="12" transform="rotate(-0.4 725 142)" fill="#F7F6E4"/>
+          <circle cx="90" cy="124" r="15" fill="#7A7600" stroke="#4A4700"/>
+          <circle cx="155" cy="124" r="15" fill="#7A7600" stroke="#4A4700"/>
+          <circle cx="220" cy="124" r="15" fill="#7A7600" stroke="#4A4700"/>
+          <circle cx="90" cy="168" r="15" fill="#7A7600" stroke="#4A4700"/>
+          <circle cx="155" cy="168" r="15" fill="#7A7600" stroke="#4A4700"/>
+          <circle cx="220" cy="168" r="15" fill="#7A7600" stroke="#4A4700"/>
+          <circle cx="375" cy="124" r="15" fill="#7A7600" stroke="#4A4700"/>
+          <circle cx="440" cy="124" r="15" fill="#7A7600" stroke="#4A4700"/>
+          <circle cx="505" cy="124" r="15" fill="#7A7600" stroke="#4A4700"/>
+          <circle cx="375" cy="168" r="15" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="440" cy="168" r="15" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="505" cy="168" r="15" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="660" cy="124" r="15" fill="#7A7600" stroke="#4A4700"/>
+          <circle cx="725" cy="124" r="15" fill="#7A7600" stroke="#4A4700"/>
+          <circle cx="790" cy="124" r="15" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="660" cy="168" r="15" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="725" cy="168" r="15" fill="#FFFFFF" stroke="#4A4700"/>
+          <circle cx="790" cy="168" r="15" fill="#FFFFFF" stroke="#4A4700"/>
+          <!-- doodle: a counting tally under the third class -->
+          <path d="M812 206 L812 222 M820 206 L820 222 M828 206 L828 222" stroke="#4A4700"/>
+        </g>
+
+        <text class="b3bP" x="48" y="84">l = 1</text>
+        <text class="b3bS" x="112" y="82">one value in the class</text>
+        <text class="b3bV" x="333" y="84">l = 2</text>
+        <text class="b3bS" x="397" y="82">two values</text>
+        <text class="b3bV" x="618" y="84">l = 3</text>
+        <text class="b3bS" x="682" y="82">three values</text>
+
+        <text class="b3bW" x="86" y="128">A</text>
+        <text class="b3bW" x="151" y="128">A</text>
+        <text class="b3bW" x="216" y="128">A</text>
+        <text class="b3bW" x="86" y="172">A</text>
+        <text class="b3bW" x="151" y="172">A</text>
+        <text class="b3bW" x="216" y="172">A</text>
+        <text class="b3bW" x="371" y="128">A</text>
+        <text class="b3bW" x="436" y="128">A</text>
+        <text class="b3bW" x="501" y="128">A</text>
+        <text class="b3bL" x="371" y="172">B</text>
+        <text class="b3bL" x="436" y="172">B</text>
+        <text class="b3bL" x="501" y="172">B</text>
+        <text class="b3bW" x="656" y="128">A</text>
+        <text class="b3bW" x="721" y="128">A</text>
+        <text class="b3bL" x="786" y="128">B</text>
+        <text class="b3bL" x="656" y="172">B</text>
+        <text class="b3bL" x="721" y="172">C</text>
+        <text class="b3bL" x="786" y="172">C</text>
+
+        <text class="b3bB" x="48" y="214">the job is given away</text>
+        <text class="b3bS" x="333" y="214">the outsider guesses between two</text>
+        <text class="b3bS" x="618" y="214">three left: the desk's bar</text>
+
+        <text class="b3bN" x="30" y="258">A, B and C stand for occupations. Real rows, occupation sensitive: rung 4 l 1 · rung 5 l 2 · rung 6 l 3.</text>
+        <text class="b3bN" x="30" y="278">Income band has only two values, so no class can ever show l above 2, however the columns are coarsened.</text>
+        <text class="b3bN" x="30" y="298">The tokens are a constructed illustration; the three l values are computed on the 32,561 rows.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - l is the count in the least diverse class, so one homogeneous class sets it to 1</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>l on the ladder, and the column that cannot climb<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Occupation climbs.</strong> With occupation as the sensitive column the desk prints l 1 at rung 4, l 2 at rung 5 (k 10, 1,801 rows suppressed) and l 3 at rung 6 (20-year age bands, degree yes or no, k 10, 345 rows suppressed). Bigger classes hold more jobs, so l rises as k does, but not in lockstep: rung 5 doubles k and only reaches l 2.</p>
+        <p><strong>Income band cannot.</strong> Income band has two values, over or under 50K. The most diverse class possible holds both, so l can never exceed 2. A rule written as "l of at least 3" is impossible to meet for this column, and a rule written as "l of at least 2" only asks that no class is entirely one band. Write the rule for the column you have, and step 2 of the build-along shows what the real rows do with it.</p>
+        <p><strong>Read l together with its class sizes.</strong> A class of 10 with nine rows of one job and one of another has l 2, and the outsider's best guess is right nine times in ten. Distinct l counts values; it does not weigh them.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Stricter versions of l<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Distinct l is the plain count the desk uses, chosen because a reviewer can check it by eye. The TKDD paper also discusses stricter instantiations, entropy l-diversity and recursive l-diversity, which ask that the values in a class are not only different but reasonably balanced, so the nine-to-one class above would fail them. They are worth reading in the paper itself before you adopt one; this page does not quote their formal definitions. The paper to cite is Machanavajjhala et al., ACM Transactions on Knowledge Discovery from Data, vol 1, issue 1, article 3, March 2007.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Hana asks for income instead.</strong> Constructed Brightwater example on the real rows: one university partner does not want occupation at all; it wants income band, to study who earns over 50K. Dr Hana Seow asks Ravi whether the rung 6 file, which passes the desk's bar with occupation as the sensitive column (k 10, l 3, 1.06% suppressed), is just as safe with income. Ravi points out that the bar's l of 3 cannot even be asked of a two-valued column, and runs the desk again with the sensitive column switched. The build-along does the same.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers t-closeness</span>
+      <h2>Measure how far a class sits from the whole table</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Li, Li and Venkatasubramanian argued that counting values asks the wrong question. What an outsider learns is the difference between what the whole table says and what the class says. If 3 in 4 people in the file earn under 50K, learning that a class is all under 50K tells little; learning that a class is almost all over 50K tells a lot, even though that class has l 2. Their t-closeness asks that every class's distribution of the sensitive value sits within a distance t of the whole table's.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 312" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two hand-drawn bars, each the full mix of occupations. Top bar, the whole released table at rung 4: a short olive segment for Prof-specialty, about one row in eight, and a long tinted segment for the other 14 occupations. Bottom bar, the class of five: all Prof-specialty. The gap between the long segment of the table and the class is shaded plum: the share of the class that would have to move to match the table, t equals 0.8741.">
+        <defs>
+          <filter id="b3cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="41" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b3cHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b3cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b3cH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b3cL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b3cS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b3cB { font: 800 11px Inter, sans-serif; fill: #5C1A33; }
+          .b3cW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b3cA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .b3cN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b3cH" x="30" y="28">t IS HOW MUCH OF THE CLASS WOULD HAVE TO MOVE TO LOOK LIKE THE TABLE</text>
+
+        <g filter="url(#b3cSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="200" y="62" width="76" height="40" rx="4" transform="rotate(-0.4 238 82)" fill="#7A7600" stroke="#4A4700"/>
+          <rect x="276" y="62" width="524" height="40" rx="4" transform="rotate(0.3 538 82)" fill="#F7F6E4"/>
+          <path d="M276 106 L800 106 L800 162 L276 162 Z" fill="#FBEEF3" stroke="#8E2A4F" stroke-dasharray="6 5"/>
+          <rect x="200" y="166" width="600" height="40" rx="4" transform="rotate(-0.3 500 186)" fill="#7A7600" stroke="#4A4700"/>
+          <path d="M300 110 L300 158" marker-end="url(#b3cAr)"/>
+          <path d="M776 110 L776 158" marker-end="url(#b3cAr)"/>
+          <path d="M200 224 L800 224" stroke="#57553F" stroke-width="1.4"/>
+          <!-- doodle: a scoop for the earth being moved -->
+          <path d="M826 122 L846 122 L842 140 L830 140 Z M836 122 L836 106" stroke="#4A4700"/>
+        </g>
+
+        <text class="b3cL" x="30" y="80">Whole released</text>
+        <text class="b3cL" x="30" y="96">table, rung 4</text>
+        <text class="b3cL" x="30" y="184">The class of 5</text>
+        <text class="b3cS" x="30" y="200">all Prof-specialty</text>
+
+        <text class="b3cL" x="292" y="87">the other 14 occupations</text>
+        <text class="b3cW" x="214" y="192">Prof-specialty: 5 of 5</text>
+
+        <text class="b3cB" x="330" y="132">t = 0.8741: the share of the class that would</text>
+        <text class="b3cB" x="330" y="148">have to change job to match the table's mix</text>
+
+        <text class="b3cA" x="196" y="240">0%</text>
+        <text class="b3cA" x="780" y="240">100%</text>
+
+        <text class="b3cN" x="30" y="270">For a class with one value, t is 1 minus that value's share of the table: here about 1 row in 8.</text>
+        <text class="b3cN" x="30" y="290">Computed on the real rows, worst class per rung: rung 4 0.8741 · rung 5 0.8056 · rung 6 0.7116.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - l counts the values in a class; t measures how surprising the class is next to the table</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>What the desk computes, and why it stays high<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>The paper's distance.</strong> Li and colleagues define t-closeness as the distance between a class's sensitive distribution and the whole table's being "no more than a threshold t", and they choose the Earth Mover's Distance: the minimal amount of work needed to move one distribution into the other. When every pair of categories is the same distance apart, as with job titles that have no natural order, that work is half the sum of the absolute differences in share, also called the variational distance. That is what the desk computes for every published class, and it prints the worst one.</p>
+        <p><strong>The real numbers.</strong> With occupation sensitive, t is 0.8741 at rung 4, 0.8056 at rung 5 and 0.7116 at rung 6. Even the heaviest rung leaves a class whose job mix is far from the table's. The reason is not a bug in the release: occupation really does differ by age, sex, education and country of birth in these rows. A class of men in their forties without a degree does different work from the table as a whole.</p>
+        <p><strong>The tension, unresolved.</strong> That difference is also exactly what Brightwater's researchers want to study. Pushing t low enough to hide it means coarsening until the classes say nothing about how jobs differ by group, which is the information the release exists to carry. No source read for this page sets a t threshold, and PDPC's guide does not teach t at all. Treat t as a measurement you report and defend, not a pass mark you can look up.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>"Neither necessary nor sufficient"<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The t-closeness paper's abstract argues that l-diversity is "neither necessary nor sufficient to prevent attribute disclosure". Not sufficient: a class can hold several values and still be heavily skewed, as with the nine-to-one class, or a high-earner class in a file where most people earn less. Not necessary: a class where everyone has the majority value can have l 1 while telling the outsider almost nothing beyond what the whole table already says. That is their argument for t, and it is an argument, not a settled result: t pays for its precision by flattening the very differences analysts need. Cite Li, Li and Venkatasubramanian, 2007 IEEE 23rd International Conference on Data Engineering, pp 106-115.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Ten nurses.</strong> Constructed Brightwater example: Lim Su-Ann, Brightwater's data protection officer, reviews a separate staff survey a partner wants to release, where one published class of 10 rows is nurses and nothing else. k is 10, double PDPC's external minimum; l is 1. Her question to Ravi is whether that is fine, and the honest answer is "it depends on the table". If the survey is mostly nurses, the class teaches little and t is small. If nurses are rare in it, anyone who knows a person in that class learns their profession, and t is large. Su-Ann asks for l and t in the release record, and a sentence on which one the release relies on.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Find the class that gives the job away</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">Ravi's rung 4 release passed k. Tonight you run the other two checks on it and on the two rungs above, for both sensitive columns, and write what you find. The widget below is the desk Brightwater uses, set to rung 4; it computes on the 32,561 real rows in your browser, and the numbers quoted here are the ones it prints. If you have the repository cloned, step 2 also gives a short node script that reads the same rows and prints the same numbers.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 228" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three hand-drawn boxes joined by arrows: step 1, k per class, the smallest class size, answers whether a person can be singled out; step 2, l per class, distinct sensitive values, answers whether a value is shared by all; step 3, t per class, the distance to the table's mix, filled plum, answers how much is learned. Note: each step can pass while the next fails, and rung 4 passes k 5 and fails l.">
+        <defs>
+          <filter id="b3dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="43" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b3dHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b3dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b3dH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b3dL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b3dS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b3dW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b3dV { font: 400 11px Inter, sans-serif; fill: #FFFFFF; }
+          .b3dN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b3dH" x="30" y="28">THREE CHECKS PER CLASS, IN ORDER</text>
+
+        <g filter="url(#b3dSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="56" width="240" height="116" rx="12" transform="rotate(-0.8 150 114)" fill="#FFFFFF"/>
+          <rect x="320" y="56" width="240" height="116" rx="12" transform="rotate(0.7 440 114)" fill="url(#b3dHc)"/>
+          <rect x="610" y="56" width="240" height="116" rx="12" transform="rotate(-0.6 730 114)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <path d="M276 114 L314 114" marker-end="url(#b3dAr)"/>
+          <path d="M566 114 L604 114" marker-end="url(#b3dAr)"/>
+          <!-- doodle: a tick beside the first box -->
+          <path d="M226 150 L236 160 L254 138" stroke="#4A4700"/>
+        </g>
+
+        <rect x="334" y="68" width="212" height="88" rx="8" fill="#FFFFFF"/>
+
+        <text class="b3dL" x="48" y="86">1 · k per class</text>
+        <text class="b3dS" x="48" y="106">the smallest class size</text>
+        <text class="b3dS" x="48" y="124">answers: can she be</text>
+        <text class="b3dS" x="48" y="140">singled out?</text>
+
+        <text class="b3dL" x="346" y="88">2 · l per class</text>
+        <text class="b3dS" x="346" y="108">distinct sensitive values</text>
+        <text class="b3dS" x="346" y="126">answers: do they all</text>
+        <text class="b3dS" x="346" y="142">share one value?</text>
+
+        <text class="b3dW" x="628" y="86">3 · t per class</text>
+        <text class="b3dV" x="628" y="106">distance to the table's mix</text>
+        <text class="b3dV" x="628" y="124">answers: how much does</text>
+        <text class="b3dV" x="628" y="140">the class teach?</text>
+
+        <text class="b3dN" x="30" y="206">Each check can pass while the next fails: rung 4 passes k 5 and fails l, with l 1 on occupation.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - k, l and t answer three different questions, so the release record carries all three</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Step 1 · At rung 4, find the class with one job.</strong> The widget opens on rung 4 with occupation as the sensitive column. Read k (5), l (1) and t (0.8741), then read the table of the five smallest published classes underneath. The first row is a class of 5 with 1 distinct occupation. Write down its quasi-identifier values: that is the class an outsider who knows one of those five women can read.</p>
+        <div data-pe="desk" id="b3-desk" data-preset="p4"></div>
+        <div class="prompt-box good"><span class="label">★ Step 1 · rung 4, occupation</span>k achieved:        5
+l (least diverse):  1      &lt;- one class where everyone has the same job
+t (worst class):    0.8741
+the class:          ______________________________ (size 5, 1 distinct occupation)
+linkage attack:     0 single-row matches, 0 occupations revealed of the 1,000
+why both are true:  none of the 1,000 people the outsider knows is in that class</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 2 · Switch the sensitive column to income band.</strong> Change "Sensitive column" to Income band (2) and read l and t at rung 4, then pick "Heavy, k = 10" for rung 6. The verdict line changes too: it counts how many of the 1,000 known people have their income band revealed because everyone in their class shares it. To check the widget from the command line, save the script below at the repository root and run it with node; it loads the same rows and calls the same engine function.</p>
+        <div class="prompt-box good"><span class="label">★ Step 2 · node, the same numbers</span>// check-income.js, run from the repository root: node check-income.js
+const fs = require("fs"), path = require("path"), vm = require("vm");
+const ctx = { window: {} };
+vm.createContext(ctx);
+vm.runInContext(fs.readFileSync("assets/pe-data.js", "utf8"), ctx);
+const PE = require(path.resolve("assets/pe-engine.js"));
+const R = PE.load(ctx.window.PE_DATA);
+const COARSE = { age: 2, sex: 0, race: 1, marital: 1, edu: 1, country: 1 };
+const HEAVY = { ...COARSE, age: 3, edu: 2 };
+const rungs = [["rung 4", COARSE, 5], ["rung 5", COARSE, 10], ["rung 6", HEAVY, 10]];
+for (const [name, levels, k] of rungs) {
+  const r = PE.release(R, levels, k, "income");
+  console.log(name, "l", r.l, "t", r.t, "revealed", r.attr_disclosed);
+}
+// prints  rung 4 l 1 t 0.6865 revealed 96
+//         rung 5 l 1 t 0.6849 revealed 82
+//         rung 6 l 1 t 0.6085 revealed 7</div>
+        <p>Income band's l is 1 at every rung: some class always has everyone in one band. At rung 4 the widget reports 96 of the 1,000 known people with their band revealed by their class; at rung 6, the rung that passes the desk's bar for occupation, it is still 7. The same file, the same classes, a different sensitive column, and a different verdict.</p>
+      </div>
+      <div class="step">
+        <p><strong>Step 3 · Move to rungs 5 and 6 and fill the grid.</strong> Pick "Same, k = 10" and then "Heavy, k = 10", and record l and t for both sensitive columns. Notice which way each number moves, and which one barely moves at all.</p>
+        <div class="prompt-box good"><span class="label">★ Step 3 · l and t, three rungs</span>                     occupation        income band
+rung 4  (k 5)        l 1   t 0.8741    l 1   t 0.6865
+rung 5  (k 10)       l 2   t 0.8056    l 1   t 0.6849
+rung 6  (k 10, heavy) l 3  t 0.7116    l 1   t 0.6085
+what moved:   ____________________________________________
+what did not: ____________________________________________</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 4 · Write a rule for a two-valued sensitive column.</strong> "l of at least 3" cannot apply to income band. Decide what you will ask of it instead, and say what it costs. There is no standard answer to copy: the options below trade protection against the pay differences the partner wants to study, and choosing between them is the engineering judgement the release record must show.</p>
+        <div class="prompt-box good"><span class="label">★ Step 4 · the two-valued rule</span>column:      income band (2 values; l can never exceed 2)
+options:     (a) require l = 2: no class entirely one band
+             (b) cap t: no class's share over 50K far from the table's
+             (c) do not publish the band per row; release counts with noise instead
+                 (Engineer session 5)
+my rule:     ______________________________________________
+what it costs the partner: _______________________________</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 5 · Write the line for the release record.</strong> One line per sensitive column: k, l and t as measured, which rung, and which of the three the release relies on. Engineer session 8 collects these lines into the full release record.</p>
+        <div class="prompt-box good"><span class="label">★ Step 5 · the release record line</span>sensitive: ________  rung: __  k: __  l: __  t: ______
+relies on: ______  because: _______________________________
+Brightwater, occupation: rung 6, k 10, l 3, t 0.7116; relies on l;
+  t is reported and stays high because jobs really differ by group.
+Brightwater, income band: rung 6, k 10, l 1, t 0.6085; fails l = 2;
+  7 of 1,000 known people have their band revealed. Not released per row yet.</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>Switch the sensitive column every time.</strong> l and t belong to a pair: a set of classes and one sensitive column. A file that passes for occupation can fail for income on exactly the same classes, as step 2 shows. A release record that reports l without naming the column has not reported l.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before Engineer session 4</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li><strong>Run the three checks on your own file.</strong> Take the dataset you sorted in Engineer session 1 and generalised in Engineer session 2. For each sensitive column, compute k, distinct l and the worst-class t, and note which class sets each one.</li>
+      <li><strong>Find your homogeneous classes.</strong> Count the rows that sit in a class with one sensitive value, as the desk does (6,331 at rung 1, 5 at rung 4 on Brightwater's rows). Decide whether each one is a disclosure or a value the whole table already makes likely.</li>
+      <li><strong>Write your two-valued rule.</strong> If any sensitive column has two values (a yes or no flag, a pass or fail), write the rule from step 4 for it, and the cost to the people who will use the file.</li>
+      <li><strong>Bring the release record lines.</strong> Engineer session 4 attacks the release with an outsider's table and asks whether the classes you checked tonight are the ones the outsider actually sees.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Engineer session 3 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">1 · What is the homogeneity attack?</p>
+      <button class="qopt" type="button">A · Joining two releases on their shared columns to single out a person</button>
+      <button class="qopt" type="button">B · Guessing a person's value from the most common value in the whole table</button>
+      <button class="qopt" type="button">C · Adding noise until every class looks the same</button>
+      <button class="qopt" type="button">D · Finding a person's class and reading the sensitive value every row in it shares</button>
+      <p class="qwhy">The outsider never needs the person's row. If every row in the class has the same value, finding the class is enough.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">2 · Brightwater's rung 4 release has k = 5 and l = 1 with occupation sensitive. Why does it still leak?</p>
+      <button class="qopt" type="button">A · At least one published class of five has a single occupation, so anyone who knows a member of it learns their job</button>
+      <button class="qopt" type="button">B · k = 5 means five people are uniquely identified</button>
+      <button class="qopt" type="button">C · The linkage attack found single-row matches</button>
+      <button class="qopt" type="button">D · It does not leak; PDPC's minimum of 5 is met</button>
+      <p class="qwhy">k = 5 hides which row is hers; l = 1 means one class says the same thing in every row. The linkage attack read 0 because none of the 1,000 known people sat in that class, not because the class is safe.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">3 · What does t measure in t-closeness?</p>
+      <button class="qopt" type="button">A · The number of distinct sensitive values in the smallest class</button>
+      <button class="qopt" type="button">B · The share of rows suppressed to reach k</button>
+      <button class="qopt" type="button">C · The distance between a class's distribution of the sensitive value and the whole table's</button>
+      <button class="qopt" type="button">D · The privacy budget spent by the release</button>
+      <p class="qwhy">t is about surprise: how far a class's mix sits from the table's. The desk computes it as the Earth Mover's Distance with equal distances between jobs, which is half the sum of the absolute differences in share.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The homogeneity and background-knowledge attacks (Alice and the 4-anonymous inpatient table, Umeko)</span><span class="note">Machanavajjhala et al., ACM TKDD vol 1, issue 1, article 3, March 2007; author-hosted TKDD draft read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">t-closeness, Earth Mover's Distance, and l-diversity "neither necessary nor sufficient"</span><span class="note">Li, Li and Venkatasubramanian, ICDE 2007, pp 106-115; author PDF read at source, taught as their argument</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Homogeneity attacks addressed by l-diversity and t-closeness, outside the guide's scope; attribute disclosure</span><span class="note">PDPC, Guide to Basic Anonymisation (2022), footnote 11 and Step 5, read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Minimum k of 5 for external sharing</span><span class="note">PDPC, Advisory Guidelines on the PDPA for Selected Topics, Chapter 3, para 3.9, read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Occupation l 1, 2, 3 and t 0.8741, 0.8056, 0.7116 at rungs 4 to 6; 5 and 6,331 rows in single-occupation classes; income band l 1 and t 0.6865, 0.6849, 0.6085, with 96, 82 and 7 of 1,000 revealed</span><span class="note">UCI Adult, Becker and Kohavi 1996, CC BY 4.0; computed by the engine, and by the node script on this page</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Entropy and recursive l-diversity</span><span class="note">Named only; formal definitions not quoted, read them in the TKDD paper</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">The desk's bar of k 10, l 3, under 5% suppressed</span><span class="note">A teaching rule of thumb, not a standard; no t threshold is given by any source read</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Brightwater, Dr Hana Seow, Ravi Menon, Lim Su-Ann and the ten-nurse survey</span><span class="note">Constructed and labelled</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Engineer session 3 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Homogeneity</b><span>Everyone in the class shares the value. Finding the class is enough.</span></div>
+      <div class="cheat-item"><b>Background knowledge</b><span>What the outsider knows about the person can rule values out.</span></div>
+      <div class="cheat-item"><b>Distinct l</b><span>Different sensitive values in the least diverse class. One homogeneous class makes it 1.</span></div>
+      <div class="cheat-item"><b>Two values</b><span>A two-valued column can never reach l 3. Write its own rule.</span></div>
+      <div class="cheat-item"><b>t</b><span>Distance from the class's mix to the table's. Report it; no source gives a pass mark.</span></div>
+      <div class="cheat-item"><b>Name the column</b><span>k, l and t belong to one set of classes and one sensitive column.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>You can say what a class gives away once it is found. Engineer session 4 asks how an outsider finds it: the join of their own table of 1,000 known people against the release, the risk of 1 over class size, and what happens when a column nobody declared is published alongside the rest.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Engineer session 3 of 8 · learn-privacy-engineering-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b2-generalise-and-suppress-to-k.html">← Prev: Generalise and suppress to k</a> &nbsp;·&nbsp; <a href="b4-the-linkage-attack.html">Next: The linkage attack →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/pe-data.js?v=1"></script>
+<script src="../assets/pe-engine.js?v=1"></script>
+<script src="../assets/pe-desk.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

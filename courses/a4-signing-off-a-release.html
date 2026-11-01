@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Leader session 4 of 4. Signing a release you can defend: PDPC's k thresholds and what to do when they cannot be met, the motivated intruder test run on the final column list, epsilon as a sign-off number, and a one-page memo with a review date, measured on 32,561 real census rows.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Signing off a release - learn privacy engineering with phoebe">
+<meta property="og:description" content="Leader session 4 of 4. A k of 5 with 0 single matches became 22 when one undeclared column shipped. What a signature has to cover, and when to sign again.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/courses/a4-signing-off-a-release.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Signing off a release - learn privacy engineering with phoebe">
+<meta name="twitter:description" content="Leader session 4 of 4. Thresholds you can defend, the attack test on the final column list, and a sign-off memo with a review date.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Leader session 4 · Signing off a release - learn privacy engineering with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=2">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-privacy-engineering-with-phoebe</a> / Leader session 4 of 4</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Privacy Engineering with Phoebe · Leader session 4 of 4</div>
+    <h1>Signing off <span class="accent">a release</span></h1>
+    <p class="sub">A signature on a release is a claim that someone else can check. Tonight: the thresholds you can defend and what PDPC asks for when they cannot be met, why the attack test has to run on the column list that actually ships, how a published privacy budget becomes a number on a sign-off, and the one-page memo Lim Su-Ann signs for Brightwater, with the date it gets looked at again.</p>
+    <div class="chip-row">
+      <span class="chip level">🟠 Leader</span>
+      <span class="chip audience">DPOs, heads of data and product leads who approve a release</span>
+      <span class="chip audience">No code</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Thresholds, the attack, the record</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: sign Brightwater's release</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where we start</h2>
+    </div>
+    <p class="lede">Three sessions in, you can tell pseudonymised from anonymised data, choose a release route and its walls, and pick a technique with its bill attached. Tonight is the last step and the one with your name on it: the signature. A good sign-off says which threshold was used and why, which attack was run on which columns, what is left over, what the release does not protect against, and when it will be looked at again. Brightwater Social Research Institute, its three university partners and its people are constructed and labelled. The rows behind every number are real: 32,561 people from the UCI Adult extract of the 1994 US Census.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">★ Build-along = everyone works it through</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> A one-page sign-off memo for Brightwater's partner release, with six fields filled from measured numbers: the route and its controls, every published column and whether it was declared, the setting, the results, the break test, and the sentence that says plainly what the release does not protect against, signed with a review date.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers thresholds you can defend</span>
+      <h2>A threshold is a judgement with a reason</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">PDPC gives you a floor, not a finish line. Its guidelines set a minimum k of 5 for sharing with external parties and a lower minimum of 3 for internal sharing with controls, and they allow other methods that show a similar or lower risk of re-identification. A sign-off weighs what was measured against what the data is still good for, and both sit on the route's controls. Change the controls and the same numbers weigh differently.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 390" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn balance scale. The left pan holds measured risk at rung 6 on the real rows: 0 single matches of 1,000 known people, 4.4 expected re-identifications, l of 3. The right pan holds usefulness: precision 51 percent, and for the counts route about 0.94 mean absolute error per count at epsilon 1. The scale stands on a plum base labelled the route's controls: agreement, named people, destroy. Beside the base, PDPC's minimum in para 3.9, k 5 external and 3 internal, and the desk's teaching bar, k 10, l 3, under 5 percent suppressed. A note says thresholds are contested and that para 3.10 asks for more stringent safeguards when k 5 cannot be reached.">
+        <defs>
+          <filter id="a4aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="31" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a4aHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="a4aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a4aH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .a4aL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .a4aS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .a4aW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .a4aY { font: 400 11px Inter, sans-serif; fill: #FFFFFF; }
+          .a4aA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .a4aN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="a4aH" x="30" y="28">WHAT A SIGNATURE WEIGHS, AND WHAT IT STANDS ON</text>
+
+        <g filter="url(#a4aSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- beam and hangers -->
+          <path d="M190 86 L690 78"/>
+          <path d="M190 86 L110 140 M190 86 L270 140"/>
+          <path d="M690 78 L610 140 M690 78 L770 140"/>
+          <!-- fulcrum -->
+          <path d="M440 82 L404 264 L476 264 Z" fill="#FFFFFF"/>
+          <!-- pans -->
+          <rect x="40" y="140" width="300" height="120" rx="12" transform="rotate(-0.6 190 200)" fill="#FFFFFF"/>
+          <rect x="540" y="140" width="300" height="120" rx="12" transform="rotate(0.5 690 200)" fill="#F7F6E4"/>
+          <!-- base and threshold cards -->
+          <rect x="40" y="274" width="240" height="56" rx="10" transform="rotate(-1.5 160 302)" fill="#FFFFFF"/>
+          <rect x="300" y="274" width="280" height="56" rx="10" transform="rotate(0.4 440 302)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="600" y="274" width="240" height="56" rx="10" transform="rotate(1.5 720 302)" fill="#FFFFFF"/>
+          <!-- doodle: a pen above the right pan -->
+          <path d="M800 40 L828 62 L822 68 L794 46 Z M794 46 L788 38 L800 40" stroke="#4A4700"/>
+        </g>
+
+        <text class="a4aH" x="58" y="164">MEASURED RISK · RUNG 6</text>
+        <text class="a4aL" x="58" y="188">single matches: 0 of 1,000</text>
+        <text class="a4aL" x="58" y="208">expected re-identifications: 4.4</text>
+        <text class="a4aL" x="58" y="228">l: 3 jobs in the thinnest class</text>
+        <text class="a4aS" x="58" y="248">computed on the real rows</text>
+
+        <text class="a4aH" x="558" y="164">USEFULNESS</text>
+        <text class="a4aL" x="558" y="188">rows route: precision 51%</text>
+        <text class="a4aL" x="558" y="208">counts route: about 0.94 per count</text>
+        <text class="a4aS" x="558" y="228">mean absolute error at epsilon 1</text>
+        <text class="a4aS" x="558" y="248">both computed on the real rows</text>
+
+        <text class="a4aA" x="56" y="298">PDPC MINIMUM, PARA 3.9</text>
+        <text class="a4aS" x="56" y="316">k 5 external · k 3 internal</text>
+
+        <text class="a4aW" x="318" y="298">THE ROUTE'S CONTROLS</text>
+        <text class="a4aY" x="318" y="316">agreement, named people, destroy</text>
+
+        <text class="a4aA" x="616" y="298">DESK BAR, TEACHING ONLY</text>
+        <text class="a4aS" x="616" y="316">k 10 · l 3 · under 5% suppressed</text>
+
+        <text class="a4aN" x="30" y="356">Thresholds are contested: PDPC sets a minimum and accepts other methods with similar or lower risk.</text>
+        <text class="a4aN" x="30" y="374">Where k 5 cannot be reached, para 3.10 asks for more stringent safeguards, not a lower bar.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the same two pans balance differently on a different base</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What PDPC actually sets, and what it leaves to you<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>A floor by audience.</strong> PDPC's Advisory Guidelines on Selected Topics (para 3.9) set a minimum k of 5 for sharing with external parties and 3 for internal sharing, with controls. The Guide to Basic Anonymisation (2022) says the industry threshold is generally 3 or 5, a higher value such as 5 or more for external sharing and a lower one such as 3 for internal sharing or long-term retention (p24 to 25).</p>
+        <p><strong>An escape hatch with a price.</strong> Para 3.9 accepts other methods if they show a similar or lower risk of re-identification. Para 3.10 says that where k of 5 cannot be reached, the organisation should put more stringent safeguards in place, for example tracking the data's lineage and disposing of it after use. Missing the number moves the weight onto the controls; it never lowers the bar quietly.</p>
+        <p><strong>A teaching bar is not a standard.</strong> The desk you used in Leader session 2 marks k of at least 10, l of at least 3 and under 5% of rows suppressed as its bar. It is a rule of thumb for practice. Researchers and regulators disagree on the right values, and no single number is endorsed everywhere. On a sign-off, write the number and the reason next to it, so the next reader can disagree with the reason rather than guess at it.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Signing an epsilon: the number has a unit<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>When the route is noisy counts rather than rows, the number on the sign-off is epsilon. NIST's Guidelines for Evaluating Differential Privacy Guarantees (SP 800-226, March 2025) draws the components of a guarantee as a pyramid and says each is vital to a meaningful guarantee. Epsilon is only one of them; others include the unit of privacy, the trust model, the query model, security, access control and side channels.</p>
+        <p>The unit matters most for a leader. NIST's key takeaway is that user-level privacy gives stronger guarantees than attribute-level, user-day-level or event-level privacy, and that guarantees with different privacy units are not directly comparable. An epsilon of 1 per person and an epsilon of 1 per event are different promises. So the sign-off line reads "epsilon, per what, over how many queries", never epsilon alone. Engineer session 6 shows how a budget is spent across queries.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>"The guide says 3 or 5, so 3."</strong> Ravi Menon's first draft set k to 3 to keep more detail for the partners. Lim Su-Ann sent it back with one line: the partners are three university teams outside Brightwater, so this is external sharing, and para 3.9 sets the minimum at 5; the 3 is for internal sharing with controls. Ravi re-ran the desk at k 10 instead, because the partners wanted more columns than the draft had and she wanted the margin in writing. Constructed Brightwater example; the paragraph numbers are real.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers the attack test</span>
+      <h2>Run the attack on the list that ships</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">A threshold says how big the classes are. An attack test says what an outsider can actually do. PDPC calls running a motivated intruder test good practice (para 3.11), and its Guide puts the measurement in Step 4, compute your risk, before Step 5, manage your re-identification and disclosure risks. The test is only as good as the columns it was run on. On the real rows, rung 4 passes with k 5 and 0 single matches; ship workclass alongside it without declaring it, and the same attack finds 22 people.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 352" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two hand-drawn column lists side by side. Left, the list that was reviewed at rung 4: age in 10-year bands, sex, race white or not, marital status in 3 groups, education in 5 levels, country of birth in 3 groups. The desk prints k 5, 0 single matches of 1,000 known people, 16.7 expected re-identifications. An arrow labelled one more column leads to the right panel, the list that shipped: the same six plus a plum strip, workclass published exact and never declared. The desk still prints k 5, but the attack now finds 22 single matches, 73.5 expected re-identifications and 89 occupations revealed.">
+        <defs>
+          <filter id="a4bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="37" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a4bHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="a4bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a4bH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .a4bL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .a4bS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .a4bB { font: 800 11px Inter, sans-serif; fill: #5C1A33; }
+          .a4bV { font: 800 20px Inter, sans-serif; fill: #4A4700; }
+          .a4bX { font: 800 20px Inter, sans-serif; fill: #5C1A33; }
+          .a4bW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .a4bA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .a4bN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="a4bH" x="30" y="28">THE COLUMN LIST THAT WAS REVIEWED, AND THE ONE THAT SHIPPED</text>
+
+        <g filter="url(#a4bSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="50" width="360" height="240" rx="12" transform="rotate(-0.6 210 170)" fill="#FFFFFF"/>
+          <rect x="480" y="50" width="370" height="240" rx="12" transform="rotate(0.5 665 170)" fill="#FFFFFF"/>
+          <rect x="492" y="150" width="346" height="30" rx="6" transform="rotate(-1 665 165)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <path d="M398 170 L472 170" marker-end="url(#a4bAr)"/>
+          <!-- doodle: a magnifier on the shipped list -->
+          <circle cx="814" cy="76" r="10" stroke="#4A4700"/>
+          <path d="M821 83 L832 94" stroke="#4A4700"/>
+        </g>
+
+        <text class="a4bH" x="48" y="76">REVIEWED · RUNG 4</text>
+        <text class="a4bS" x="48" y="98">age 10-year bands · sex exact</text>
+        <text class="a4bS" x="48" y="116">race white / not · marital 3 groups</text>
+        <text class="a4bS" x="48" y="134">education 5 levels · country 3 groups</text>
+        <text class="a4bA" x="48" y="172">THE DESK PRINTS</text>
+        <text class="a4bL" x="48" y="194">k 5, every class of 5 or more</text>
+        <text class="a4bV" x="48" y="234">0</text>
+        <text class="a4bS" x="76" y="234">single matches of 1,000</text>
+        <text class="a4bS" x="48" y="262">16.7 expected re-identifications</text>
+
+        <text class="a4bS" x="404" y="140">one more</text>
+        <text class="a4bS" x="404" y="154">column</text>
+
+        <text class="a4bH" x="498" y="76">SHIPPED</text>
+        <text class="a4bS" x="498" y="98">the same six columns, same settings</text>
+        <text class="a4bS" x="498" y="116">sent with the partner extract</text>
+        <text class="a4bS" x="498" y="134">plus one nobody re-ran</text>
+        <text class="a4bW" x="506" y="170">+ workclass, exact, never declared</text>
+        <text class="a4bL" x="498" y="202">k still printed: 5</text>
+        <text class="a4bX" x="498" y="238">22</text>
+        <text class="a4bS" x="530" y="238">single matches</text>
+        <text class="a4bX" x="650" y="238">73.5</text>
+        <text class="a4bS" x="708" y="238">expected</text>
+        <text class="a4bX" x="498" y="270">89</text>
+        <text class="a4bB" x="530" y="270">occupations revealed</text>
+
+        <text class="a4bN" x="30" y="318">Computed on the real rows, 1,000 people an outsider knows. k is computed over the declared columns,</text>
+        <text class="a4bN" x="30" y="336">so it never moved. The attack joins on every column that ships, so it did.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - sign the list that ships, not the list that was reviewed</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>What the attack test has to prove<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Who the intruder is.</strong> PDPC's paras 3.36 to 3.38 describe the motivated intruder, adapted from the UK ICO's code: motivated and reasonably competent, using the internet and public directories, not targeting a particular person, with no criminal methods or specialist equipment. Para 3.38(a) asks you to count the technical, legal, regulatory and organisational controls in place.</p>
+        <p><strong>What the intruder holds.</strong> On the desk, an outsider knows six facts exactly about 1,000 real people in the file and joins on them. Single matches are people found in a class of one; expected re-identifications add up one guess per person over their class size. Both go on the sign-off.</p>
+        <p><strong>Which columns.</strong> Every column in the file that leaves the building, declared or not. A k computed on the reviewed list was never wrong, only incomplete: after the break the desk still prints k 5, while single matches go from 0 to 22. The fix is a rule of procedure: the attack is re-run on the final column list, and the signature is dated after that run.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Steps 4 and 5 in PDPC's Guide<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The Guide to Basic Anonymisation (2022) runs five steps: know your data, de-identify it, apply anonymisation techniques, compute your risk, and manage your re-identification and disclosure risks. Step 4 is where the measured number comes from, k and its equivalents. Step 5 names three kinds of disclosure to manage: identity disclosure (finding the person), attribute disclosure (learning something about them, as the 89 revealed occupations do) and inference disclosure. A sign-off that reports only k has done Step 4 for identity and skipped the rest. The Guide is written for structured, non-complex data and suggests bringing in experts where appropriate.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Netflix shipped what the attackers needed.</strong> In 2006 Netflix published movie ratings from about 500,000 subscribers for a public prediction prize, with names replaced by numbers, so someone inside had judged the file safe to publish. Narayanan and Shmatikov showed that 8 ratings, 2 of which could be wrong, with dates known to within 14 days, single out 99% of the records, and with public IMDb reviews as background knowledge they identified the records of known users. The ratings were the quasi-identifiers. A review that looked at the names and not at the ratings signed the wrong list.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers the release record and review</span>
+      <h2>A record someone can check, and a date to check it</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">PDPC's para 3.5 says the effectiveness of anonymisation may degrade over time and should be reviewed periodically, and para 3.6 says it must be reassessed when the data is combined with other information. A signature is therefore a claim about a moment. The release record makes the moment checkable: every column and whether it was declared, the setting, the results, the break test, the route and the review date. Some triggers you schedule; others arrive by email.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 342" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn timeline from left to right with four triggers. One, release signed: the record and a review date, PDPC para 3.5, review periodically. Two, one more column: a partner wants workclass too, re-run the desk before it ships. Three, new outside data: a public file appears, PDPC para 3.6, reassess when combined. Four, in plum, the scheduled review date: the one trigger you put in the diary, re-run and re-sign. A note says triggers two and three arrive without warning and each one means re-run the desk on the final column list, then sign again.">
+        <defs>
+          <filter id="a4cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="41" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a4cHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="a4cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a4cH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .a4cL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .a4cS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .a4cW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .a4cY { font: 400 11px Inter, sans-serif; fill: #FFFFFF; }
+          .a4cA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .a4cN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="a4cH" x="30" y="28">FOUR MOMENTS THAT EACH MEAN: RUN IT AGAIN</text>
+
+        <g filter="url(#a4cSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M40 160 L846 160" marker-end="url(#a4cAr)"/>
+          <circle cx="120" cy="160" r="6" fill="#FFFFFF"/>
+          <circle cx="330" cy="160" r="6" fill="#FFFFFF"/>
+          <circle cx="560" cy="160" r="6" fill="#FFFFFF"/>
+          <circle cx="770" cy="160" r="7" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <path d="M120 166 L120 182 M330 136 L330 154 M560 166 L560 182 M770 136 L770 153"/>
+          <rect x="30" y="182" width="190" height="100" rx="10" transform="rotate(-1.5 125 232)" fill="#FFFFFF"/>
+          <rect x="240" y="44" width="180" height="92" rx="10" transform="rotate(1.2 330 90)" fill="#FFFFFF"/>
+          <rect x="470" y="182" width="190" height="100" rx="10" transform="rotate(1 565 232)" fill="#F7F6E4"/>
+          <rect x="686" y="44" width="166" height="92" rx="10" transform="rotate(-1.2 769 90)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <!-- doodle: a small calendar page -->
+          <rect x="44" y="58" width="30" height="26" rx="3" stroke="#4A4700"/>
+          <path d="M44 66 L74 66 M52 54 L52 62 M66 54 L66 62" stroke="#4A4700"/>
+        </g>
+
+        <text class="a4cH" x="46" y="206">1 · RELEASE SIGNED</text>
+        <text class="a4cL" x="46" y="228">record and review date</text>
+        <text class="a4cS" x="46" y="248">PDPC para 3.5:</text>
+        <text class="a4cS" x="46" y="264">review periodically</text>
+
+        <text class="a4cH" x="256" y="68">2 · ONE MORE COLUMN</text>
+        <text class="a4cL" x="256" y="90">wants workclass too</text>
+        <text class="a4cS" x="256" y="110">re-run the desk</text>
+        <text class="a4cS" x="256" y="126">before it ships</text>
+
+        <text class="a4cH" x="486" y="206">3 · NEW OUTSIDE DATA</text>
+        <text class="a4cL" x="486" y="228">a public file appears</text>
+        <text class="a4cS" x="486" y="248">PDPC para 3.6:</text>
+        <text class="a4cS" x="486" y="264">reassess when combined</text>
+
+        <text class="a4cW" x="700" y="68">4 · REVIEW DATE</text>
+        <text class="a4cY" x="700" y="90">the one trigger you</text>
+        <text class="a4cY" x="700" y="106">put in the diary</text>
+        <text class="a4cY" x="700" y="122">re-run, then re-sign</text>
+
+        <text class="a4cA" x="800" y="182">TIME</text>
+
+        <text class="a4cN" x="30" y="312">Triggers 2 and 3 arrive without warning. Only the review date is one you set in advance.</text>
+        <text class="a4cN" x="30" y="330">Each trigger means the same thing: re-run the desk on the final column list, then sign again.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - a signature without a review date assumes nothing else will ever be published</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>What the record holds, and why each field is there<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Columns, each marked declared yes or no.</strong> The break in Part 2 lives here. If a column ships and is not on the declared list, the record shows it before an outsider does.</p>
+        <p><strong>Setting and results.</strong> How coarse each column went out, the k, and what the desk measured: k, l, t, rows suppressed, precision, single matches and expected re-identifications. A second engineer with the same rows and the record must get the same numbers; that is the test of the record.</p>
+        <p><strong>Break test.</strong> The attack re-run with any column a partner might add, and the decision taken: generalise and declare it, or leave it out.</p>
+        <p><strong>Sign-off.</strong> Who signed, the route and its controls, and the review date. Engineer session 8 builds these fields; tonight you read them as the person whose name goes at the bottom.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>A published budget as a sign-off number<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A sign-off number can be public. The US Census Bureau's press release CB21-CN.42 (9 June 2021) announced "a total privacy-loss budget for the redistricting data product" of epsilon 19.61, which includes 17.14 for the persons file and 2.47 for the housing unit data (17.14 + 2.47 = 19.61). The release names the TopDown Algorithm and the privacy-loss budget; the Bureau's adoption of differential privacy for 2020 is widely reported. The figure covers the redistricting product only, not the whole of the 2020 Census output, and a budget for later files is not quoted here because no primary source for one was read.</p>
+        <p>What a leader takes from it: the number was written down, split by file, and published before release, so anyone can argue with it. That is the standard a privately signed epsilon should meet too, with its unit and its query count beside it.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Lim Su-Ann's signature block.</strong> Brightwater's memo ends in four lines she will not sign without: "Signed on the final column list, re-run on the date below. Route: three named partner teams under the data-sharing agreement, clause 7. Does not protect against: any column added after this date, any new outside data, a partner who breaks clause 7. Review: twelve months from release, or at the first trigger, whichever is sooner." Constructed Brightwater example; the twelve months is her choice, not a standard.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Sign Brightwater's release</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">Ravi Menon has run the desk and brought the release record for the partner extract at rung 6. Dr Hana Seow wants the file with the three university teams this month. Lim Su-Ann will sign only a one-page memo she could hand to a regulator or a successor. Read the numbers from the desk, press the break, name the route, set the review, and write the memo, including the sentence most memos leave out.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 372" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn one-page sign-off memo with six fields in two rows of three. One, route and controls: three partner teams, clause 7, destroy in 30 days. Two, every column: published, declared yes or no, workclass not published. Three, setting: age in 20-year bands, degree yes or no, others grouped, k 10. Four, results, in olive tint: k 10, l 3, 1.06 percent suppressed, 0 single matches, 4.4 expected, precision 51 percent. Five, break test: with workclass added, 3 single matches, 25.2 expected, 64 occupations revealed. Six, in plum, limits and review: what the release does not protect against and the review date. Under the fields, a signature line for Lim Su-Ann, DPO.">
+        <defs>
+          <filter id="a4dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="43" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a4dHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="a4dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a4dH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .a4dL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .a4dS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .a4dW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .a4dY { font: 400 11px Inter, sans-serif; fill: #FFFFFF; }
+          .a4dN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="a4dH" x="30" y="28">THE SIGN-OFF MEMO, ONE PAGE, SIX FIELDS</text>
+
+        <g filter="url(#a4dSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="44" width="820" height="276" rx="12" transform="rotate(-0.3 440 182)" fill="#FFFFFF"/>
+          <rect x="50" y="62" width="250" height="100" rx="8" transform="rotate(-1 175 112)" fill="#FFFFFF"/>
+          <rect x="315" y="62" width="250" height="100" rx="8" transform="rotate(0.8 440 112)" fill="#FFFFFF"/>
+          <rect x="580" y="62" width="250" height="100" rx="8" transform="rotate(-0.7 705 112)" fill="#FFFFFF"/>
+          <rect x="50" y="176" width="250" height="100" rx="8" transform="rotate(0.7 175 226)" fill="#F7F6E4"/>
+          <rect x="315" y="176" width="250" height="100" rx="8" transform="rotate(-0.8 440 226)" fill="#FFFFFF"/>
+          <rect x="580" y="176" width="250" height="100" rx="8" transform="rotate(1 705 226)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <!-- doodle: a signature on the line -->
+          <path d="M64 304 L300 304" stroke="#57553F" stroke-width="1.4"/>
+          <path d="M210 298 Q220 282 228 296 Q236 310 244 292 Q252 280 260 298 L286 290" stroke="#4A4700"/>
+        </g>
+
+        <text class="a4dH" x="66" y="86">1 · Route and controls</text>
+        <text class="a4dS" x="66" y="108">three partner teams, agreement</text>
+        <text class="a4dS" x="66" y="126">clause 7, destroy in 30 days</text>
+        <text class="a4dS" x="66" y="144">no onward sharing</text>
+
+        <text class="a4dH" x="331" y="86">2 · Every column</text>
+        <text class="a4dS" x="331" y="108">published, declared yes / no</text>
+        <text class="a4dS" x="331" y="126">six declared at rung 6</text>
+        <text class="a4dS" x="331" y="144">workclass: not published</text>
+
+        <text class="a4dH" x="596" y="86">3 · Setting</text>
+        <text class="a4dS" x="596" y="108">age 20-year bands</text>
+        <text class="a4dS" x="596" y="126">degree yes / no, others grouped</text>
+        <text class="a4dS" x="596" y="144">suppress classes under k 10</text>
+
+        <text class="a4dH" x="66" y="200">4 · Results</text>
+        <text class="a4dL" x="66" y="222">k 10 · l 3 · 1.06% suppressed</text>
+        <text class="a4dL" x="66" y="242">0 single · 4.4 expected</text>
+        <text class="a4dS" x="66" y="262">precision 51%</text>
+
+        <text class="a4dH" x="331" y="200">5 · Break test</text>
+        <text class="a4dS" x="331" y="222">workclass added, undeclared:</text>
+        <text class="a4dL" x="331" y="242">3 single · 25.2 expected</text>
+        <text class="a4dS" x="331" y="262">64 occupations revealed</text>
+
+        <text class="a4dW" x="596" y="200">6 · Limits and review</text>
+        <text class="a4dY" x="596" y="218">does not protect against: a</text>
+        <text class="a4dY" x="596" y="234">column added, new outside data,</text>
+        <text class="a4dY" x="596" y="250">a partner breaking clause 7</text>
+        <text class="a4dY" x="596" y="266">review: 12 months or a trigger</text>
+
+        <text class="a4dL" x="66" y="296">Lim Su-Ann, DPO</text>
+        <text class="a4dS" x="316" y="300">signed on the final column list, dated after the last run</text>
+
+        <text class="a4dN" x="30" y="344">Fields 1 to 5 come from the engineer's release record (Engineer session 8). Field 6 is the signer's own.</text>
+        <text class="a4dN" x="30" y="362">Desk numbers computed on the real rows; route, clause, dates and names constructed.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - five fields are measured; the sixth is the one only the signer can write</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Step 1 · Read rung 6 from the desk.</strong> The desk below opens on rung 6: age in 20-year bands, education as degree yes or no, race, marital status and country grouped, every class under 10 suppressed. Read the six numbers a signer needs. The widget prints k 10, l 3, 345 rows suppressed (1.06%), precision 51%, 0 single matches and 4.4 expected re-identifications among the 1,000 people the outsider knows, and its verdict says the desk's bar is passed. Write them in field 4.</p>
+        <div data-pe="desk" id="a4-desk" data-preset="p6"></div>
+        <div class="prompt-box good"><span class="label">★ Step 1 · field 4, results</span>k ___  l ___  suppressed ____%  precision ___%
+single matches ___ of 1,000   expected re-identifications ____
+Brightwater, rung 6: k 10 · l 3 · 1.06% (345 rows) · 51%
+                     0 single · 4.4 expected</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 2 · Press the break button.</strong> On the same desk, press "Break it: publish workclass too". It sends workclass out exact without declaring it, which is what would happen if a partner asked for it after review. k still reads 10, because k only counts the declared columns. The widget prints 3 single matches, 25.2 expected re-identifications and 64 occupations revealed, and the verdict turns to not releasable. Rung 6 survives better than rung 4 did (22 single matches, 73.5 expected, 89 revealed) and still fails. Write it in field 5 with the decision.</p>
+        <div class="prompt-box good"><span class="label">★ Step 2 · field 5, break test</span>with ________ added, undeclared: single ___  expected ____  revealed ___
+decision:  generalise and declare it  /  leave it out
+Brightwater: workclass -&gt; 3 single · 25.2 expected · 64 revealed
+             decision: workclass is not published in this release</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 3 · Name the route and its controls.</strong> Take the route and the walls from your Leader session 2 risk register. Brightwater's partner route is three named university teams under one agreement, with clause 7 carrying the four walls: use only for the approved study, no disclosure beyond the named people, no attempt to re-identify or link, destroy within 30 days of the end. Rung 6 is stricter than PDPC's external minimum of 5; say why in one line.</p>
+        <div class="prompt-box good"><span class="label">★ Step 3 · field 1, route and controls</span>route: ______________________  people who see rows: ____
+walls: limit recipients Y/N · no onward disclosure Y/N
+       no re-identification Y/N · destroy by ________
+k chosen: ___ because ______________________________________
+Brightwater: 3 partner teams, about 20 people, clause 7, all four walls
+k 10, above PDPC's minimum of 5, for margin against added columns</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 4 · Set the review triggers and the date.</strong> List what would make you re-run the desk before the date comes: a partner asking for a column, a new public dataset that overlaps the six facts, a partner team growing, a copy turning up outside the named list. Then set the date itself. Para 3.5 asks for periodic review without fixing a period, so the period is yours to choose and defend.</p>
+        <div class="prompt-box good"><span class="label">★ Step 4 · field 6, review</span>re-run if:  ________________________________________________
+            ________________________________________________
+review date: __________   owner: __________________
+Brightwater: any column request · new outside data on the six facts ·
+team changes · a copy outside Schedule A. Review: 12 months, Lim Su-Ann</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 5 · Write the memo, and the sentence on what it does not protect against.</strong> Put the six fields on one page, sign under them, and write one plain sentence naming what the release leaves open. Rung 6 does not make the residual zero: 4.4 of 1,000 known people can still be guessed by chance, and the guarantee holds only for the columns and the route on the page.</p>
+        <div class="prompt-box good"><span class="label">★ Step 5 · the memo</span>Release: Brightwater partner extract, rung 6, final column list
+1 route   3 partner teams under agreement, clause 7
+2 columns six declared; workclass not published
+3 setting age 20y, degree yes/no, race/marital/country grouped, k 10
+4 results k 10 · l 3 · 1.06% · 51% · 0 single · 4.4 expected
+5 break   workclass undeclared: 3 single · 25.2 · 64 revealed
+6 limits  This release does not protect against: a column added
+          after today, new outside data on the six facts, a partner
+          who breaks clause 7, or guessing at the 4.4 expected level.
+          It is not approved for any public route.
+Signed: Lim Su-Ann, DPO · review: 12 months or first trigger</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>The sixth field is the one that ages well.</strong> Numbers go stale the day a new dataset appears; a clear sentence about what was never promised does not. When someone asks in a year why a partner was allowed this file, the limits line and the review date are what show the decision was made with its eyes open.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before your next release</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li><strong>Schedule the re-review.</strong> For the release you have followed since Leader session 1, put a review date in the diary of a named owner today, and list the triggers that would bring it forward.</li>
+      <li><strong>Check the column list.</strong> Compare the columns that were reviewed with the columns that actually shipped. If any column shipped undeclared, ask for the attack to be re-run on the final list.</li>
+      <li><strong>Read the source.</strong> Read paras 3.5, 3.6, 3.9 to 3.11 and 3.36 to 3.38 of PDPC's Advisory Guidelines on Selected Topics, Chapter 3, and Steps 4 and 5 of the Guide to Basic Anonymisation. Underline what para 3.10 asks for when k of 5 cannot be reached.</li>
+      <li><strong>Write the sixth field.</strong> Draft the one sentence on what that release does not protect against, and send it to whoever signed it. If nobody signed it, that is the finding.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Leader session 4 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · Brightwater is sharing its extract with three university teams outside the institute. What minimum k do PDPC's guidelines set for this kind of sharing?</p>
+      <button class="qopt" type="button">A · 3, because the partners are researchers</button>
+      <button class="qopt" type="button">B · 10, the bar on the desk</button>
+      <button class="qopt" type="button">C · 5 for external sharing, with 3 reserved for internal sharing with controls</button>
+      <button class="qopt" type="button">D · There is no minimum; any k is acceptable with a contract</button>
+      <p class="qwhy">Para 3.9 sets 5 for external parties and 3 for internal sharing with controls. The desk's k of 10 is a teaching bar, not a standard, and para 3.10 asks for stricter safeguards, not a lower bar, when 5 cannot be reached.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">2 · At rung 4 the desk prints k 5 and 0 single matches. Workclass then ships undeclared and single matches jump to 22, while k still reads 5. Why does the sign-off need the final column list?</p>
+      <button class="qopt" type="button">A · k is computed only over the declared columns, while an outsider can join on every column that ships</button>
+      <button class="qopt" type="button">B · Workclass is a direct identifier</button>
+      <button class="qopt" type="button">C · The desk has a bug that the list corrects</button>
+      <button class="qopt" type="button">D · PDPC requires exactly six columns</button>
+      <p class="qwhy">The k was never wrong, only incomplete. The attack test has to run on what leaves the building, and the record marks every column declared or not so the gap shows before an outsider finds it.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">3 · When should a signed release be reviewed again?</p>
+      <button class="qopt" type="button">A · Never, once it is anonymised it stays that way</button>
+      <button class="qopt" type="button">B · Only if a regulator asks</button>
+      <button class="qopt" type="button">C · Only when the data is deleted</button>
+      <button class="qopt" type="button">D · On a scheduled date, and earlier when a column is added or the data could be combined with new outside information</button>
+      <p class="qwhy">Para 3.5 says effectiveness may degrade over time and asks for periodic review; para 3.6 asks for reassessment when the data is combined with other information. The date is yours to set; the triggers arrive on their own.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Minimum k of 5 external and 3 internal; other methods with similar or lower risk; stricter safeguards when 5 is out of reach</span><span class="note">PDPC, Advisory Guidelines on the PDPA for Selected Topics, Chapter 3, revised 23 May 2024, paras 3.9 and 3.10; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Motivated intruder test as good practice, and who the intruder is</span><span class="note">PDPC Selected Topics paras 3.11 and 3.36 to 3.38, adapted from the UK ICO's code; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Periodic review and reassessment when combined with other information</span><span class="note">PDPC Selected Topics paras 3.5 and 3.6; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Industry threshold of 3 or 5; Step 4 compute your risk, Step 5 manage the risks; identity, attribute and inference disclosure</span><span class="note">PDPC, Guide to Basic Anonymisation (2022), p24 to 26; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Epsilon is one component of a guarantee; user-level is stronger than event-level; different units are not comparable</span><span class="note">NIST SP 800-226, Guidelines for Evaluating Differential Privacy Guarantees, March 2025, Fig. 1 and section 2.4; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Redistricting privacy-loss budget of epsilon 19.61 (17.14 persons, 2.47 housing units)</span><span class="note">US Census Bureau press release CB21-CN.42, 9 June 2021; read at source. Covers the redistricting product only; adoption of differential privacy is reported</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Rung 6 (k 10, l 3, 1.06% suppressed, 51%, 0 single, 4.4 expected); rung 4 break (22, 73.5, 89); rung 6 break (3, 25.2, 64)</span><span class="note">Computed on UCI Adult (Becker and Kohavi 1996, CC BY 4.0) by the in-page engine</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The Netflix Prize de-anonymisation</span><span class="note">Narayanan and Shmatikov, IEEE Symposium on Security and Privacy 2008; read at source</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">The desk's bar of k 10, l 3, under 5% suppressed</span><span class="note">A teaching rule of thumb, not a standard; thresholds are contested</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Brightwater, Dr Hana Seow, Ravi Menon, Lim Su-Ann, clause 7, the memo and its review period</span><span class="note">Constructed and labelled</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Leader session 4 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>The floor</b><span>PDPC para 3.9: k 5 external, 3 internal with controls. Write the reason for your number.</span></div>
+      <div class="cheat-item"><b>Cannot reach 5?</b><span>Para 3.10: more stringent safeguards, such as lineage tracking and disposal. Never a lower bar.</span></div>
+      <div class="cheat-item"><b>Epsilon has a unit</b><span>Sign epsilon, per what, over how many queries. Different units are not comparable.</span></div>
+      <div class="cheat-item"><b>Sign the shipped list</b><span>k counts declared columns; the attack joins on all of them. 0 became 22 at rung 4.</span></div>
+      <div class="cheat-item"><b>Six fields</b><span>Route, columns, setting, results, break test, limits and review. One page.</span></div>
+      <div class="cheat-item"><b>Date it</b><span>Para 3.5 and 3.6: review periodically, reassess when combined. Put the date in a diary.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>That is the Leader track complete: you can tell pseudonymised from anonymised, set a route and its walls, choose a technique with its bill, and sign a release someone else can check. To see how the numbers on your memo are built, work through <a href="b8-the-release-desk.html">Engineer session 8</a> with your engineers. For what the law requires of the release, go to <a href="https://phoebefu6.github.io/learn-pdpa-dnc-with-phoebe/">PDPA and DNC ↗</a>; for the programme around it, the DPO role and the data inventory, go to <a href="https://phoebefu6.github.io/learn-data-governance-with-phoebe/">Data Governance ↗</a>; and for every sibling, the <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe hub ↗</a>.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Leader session 4 of 4 · learn-privacy-engineering-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="a3-choosing-the-technique.html">← Prev: Choosing the technique</a> &nbsp;·&nbsp; <a href="../index.html">Course home</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/pe-data.js?v=1"></script>
+<script src="../assets/pe-engine.js?v=1"></script>
+<script src="../assets/pe-desk.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

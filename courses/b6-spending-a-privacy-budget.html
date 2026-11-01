@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Engineer session 6 of 8. Composition adds epsilons, post-processing is free, and a guarantee means nothing until its unit of privacy is named. Total epsilon 1 over 10 queries turns an error of 0.94 into 9.42 on real census counts, and the 2020 US Census redistricting budget was 19.61.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Spending a privacy budget - learn privacy engineering with phoebe">
+<meta property="og:description" content="Engineer session 6 of 8. Split epsilon 1 over ten queries and every answer is ten times noisier: 0.94 becomes 9.42 per count on real rows.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/courses/b6-spending-a-privacy-budget.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Spending a privacy budget - learn privacy engineering with phoebe">
+<meta name="twitter:description" content="Engineer session 6 of 8. Composition, free post-processing, the unit of privacy, and a real published budget.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Engineer session 6 · Spending a privacy budget - learn privacy engineering with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=2">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-privacy-engineering-with-phoebe</a> / Engineer session 6 of 8</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Privacy Engineering with Phoebe · Engineer session 6 of 8</div>
+    <h1>Spending a <span class="accent">privacy budget</span></h1>
+    <p class="sub">Engineer session 5 gave one query a guarantee. Nobody asks one query. Brightwater's three university partners will each ask several, and every answer leaks a little about the same people. Tonight: the composition theorem that adds those leaks up, the post-processing you may do for free, the unit of privacy that decides what the guarantee is even about, and a real budget the US Census Bureau published, 19.61, set beside a textbook 1.</p>
+    <div class="chip-row">
+      <span class="chip level">🟠 Engineer</span>
+      <span class="chip audience">Data engineers and analysts who prepare a release</span>
+      <span class="chip audience">numpy or the in-page widget</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Composition, units, a real budget</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: plan a budget</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where we start</h2>
+    </div>
+    <p class="lede">Last session ended on one released table: the count of people earning over 50K at each of 16 education levels, Laplace noise of scale b = 1 / epsilon on every count, a mean absolute error of 0.94 people at epsilon 1. Tonight the same 32,561 real rows from the UCI Adult extract of the 1994 US Census, and the same query, asked more than once. Epsilon stops being a dial on one release and becomes a budget that every release draws from. Brightwater, the Singapore research trust that holds the rows, and its three partner teams are constructed; the counts are real.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">★ Build-along = everyone works it through</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> A budget ledger that splits one total epsilon across three partners and adds back up to it; a list of what each partner may do to its answers without spending anything; and the budget line for the release record, with the unit of privacy named, so that the epsilon on it means something to the person who reads it.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers composition</span>
+      <h2>Every answer spends from the same budget</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Ask two differentially private questions about the same people and the leaks add up. Dwork and Roth (2014) state it as the composition theorem: an epsilon1-differentially private mechanism and an epsilon2-differentially private mechanism, run together, are epsilon1 + epsilon2 differentially private. So a release has a total, and you decide up front how to divide it. Divide it ten ways and each answer gets one tenth of the budget, ten times the noise.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn jar holding a total epsilon of 1. Ten tokens of epsilon 0.1 leave the jar, one per query. On the right, two results on the real counts: one query at epsilon 1 has noise scale 1 and a mean absolute error of 0.94 people per count; ten queries at epsilon 0.1 each have noise scale 10 and a mean absolute error of 9.42 people per count, drawn in plum.">
+        <defs>
+          <filter id="b6aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="31" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b6aHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b6aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b6aH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b6aL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b6aS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b6aV { font: 800 18px Inter, sans-serif; fill: #4A4700; }
+          .b6aW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b6aX { font: 800 18px Inter, sans-serif; fill: #FFFFFF; }
+          .b6aN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b6aH" x="30" y="28">ONE TOTAL EPSILON, TEN QUERIES: EACH ANSWER GETS ONE TENTH</text>
+
+        <g filter="url(#b6aSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- the jar -->
+          <path d="M60 72 L60 262 Q60 282 80 282 L200 282 Q220 282 220 262 L220 72" fill="url(#b6aHc)"/>
+          <path d="M50 70 L230 70"/>
+          <!-- doodle: the lid, lifted -->
+          <path d="M70 56 Q140 36 210 52" stroke="#4A4700"/>
+          <!-- ten tokens, 0.1 each -->
+          <rect x="270" y="108" width="36" height="30" rx="6" transform="rotate(-3 288 123)" fill="#FFFFFF"/>
+          <rect x="314" y="108" width="36" height="30" rx="6" transform="rotate(2 332 123)" fill="#FFFFFF"/>
+          <rect x="358" y="108" width="36" height="30" rx="6" transform="rotate(-2 376 123)" fill="#FFFFFF"/>
+          <rect x="402" y="108" width="36" height="30" rx="6" transform="rotate(3 420 123)" fill="#FFFFFF"/>
+          <rect x="446" y="108" width="36" height="30" rx="6" transform="rotate(-1 464 123)" fill="#FFFFFF"/>
+          <rect x="270" y="156" width="36" height="30" rx="6" transform="rotate(2 288 171)" fill="#FFFFFF"/>
+          <rect x="314" y="156" width="36" height="30" rx="6" transform="rotate(-3 332 171)" fill="#FFFFFF"/>
+          <rect x="358" y="156" width="36" height="30" rx="6" transform="rotate(1 376 171)" fill="#FFFFFF"/>
+          <rect x="402" y="156" width="36" height="30" rx="6" transform="rotate(-2 420 171)" fill="#FFFFFF"/>
+          <rect x="446" y="156" width="36" height="30" rx="6" transform="rotate(3 464 171)" fill="#FFFFFF"/>
+          <path d="M226 148 L260 148" marker-end="url(#b6aAr)"/>
+          <path d="M490 110 L522 100" marker-end="url(#b6aAr)"/>
+          <path d="M490 186 L522 214" marker-end="url(#b6aAr)"/>
+          <!-- results -->
+          <rect x="530" y="56" width="320" height="96" rx="12" transform="rotate(-0.5 690 104)" fill="#FFFFFF"/>
+          <rect x="530" y="172" width="320" height="110" rx="12" transform="rotate(0.5 690 227)" fill="#8E2A4F" stroke="#8E2A4F"/>
+        </g>
+
+        <rect x="76" y="132" width="128" height="62" rx="8" fill="#FFFFFF"/>
+        <text class="b6aL" x="90" y="152">total budget</text>
+        <text class="b6aV" x="90" y="180">epsilon 1</text>
+
+        <text class="b6aL" x="279" y="128">0.1</text>
+        <text class="b6aL" x="323" y="128">0.1</text>
+        <text class="b6aL" x="367" y="128">0.1</text>
+        <text class="b6aL" x="411" y="128">0.1</text>
+        <text class="b6aL" x="455" y="128">0.1</text>
+        <text class="b6aL" x="279" y="176">0.1</text>
+        <text class="b6aL" x="323" y="176">0.1</text>
+        <text class="b6aL" x="367" y="176">0.1</text>
+        <text class="b6aL" x="411" y="176">0.1</text>
+        <text class="b6aL" x="455" y="176">0.1</text>
+        <text class="b6aS" x="270" y="214">ten queries, epsilon 0.1 each</text>
+        <text class="b6aS" x="270" y="232">0.1 x 10 = 1, the whole jar</text>
+
+        <text class="b6aH" x="548" y="80">ONE QUERY AT EPSILON 1</text>
+        <text class="b6aS" x="548" y="100">noise scale b = 1 / 1 = 1</text>
+        <text class="b6aV" x="548" y="134">0.94</text>
+        <text class="b6aS" x="600" y="132">people of error per count</text>
+
+        <text class="b6aW" x="548" y="198">TEN QUERIES AT EPSILON 0.1 EACH</text>
+        <text class="b6aW" x="548" y="218">noise scale b = 1 / 0.1 = 10</text>
+        <text class="b6aX" x="548" y="254">9.42</text>
+        <text class="b6aW" x="600" y="252">people of error, every answer</text>
+
+        <text class="b6aN" x="30" y="312">Seeded widget draw on 16 real counts. Corollary 3.15: the ten epsilons sum back to the total of 1.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - splitting a budget does not split the error: each answer pays the whole price of its small share</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What the composition theorem says<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Two mechanisms.</strong> Theorem 3.14 in Dwork and Roth (2014): if one mechanism is epsilon1-differentially private and another is epsilon2-differentially private, releasing both answers is epsilon1 + epsilon2 differentially private. The person in the file is protected by the sum, not by either one.</p>
+        <p><strong>Many mechanisms.</strong> Corollary 3.15 extends it to k mechanisms: the epsilons add. Ten queries at 0.1 cost 1. Twenty queries at 0.1 cost 2. There is no free repeat, and asking the same question twice and averaging is just two queries.</p>
+        <p><strong>What it costs in accuracy.</strong> Keep the total at 1 and split it over 10 queries: each query runs at epsilon 0.1, the Laplace scale is b = 10, and on the real counts the mean absolute error per count goes from 0.94 to 9.42. That is the trade every budget is a decision about: more questions, or sharper answers.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>A tighter bound exists, and why we stop at the sum<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The simple sum is an upper bound, and for many queries it is pessimistic. Dwork and Roth also prove an advanced composition theorem (Theorem 3.20) that gives a smaller total for many mechanisms, at the price of a small delta, the (epsilon, delta) form of the definition from Engineer session 5. It is real and widely used; it is also beyond what a release record needs to state for a handful of counting queries. Use the sum, write down that you used the sum, and leave the tighter accounting to a specialist who can show the working.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Constructed Brightwater example: the quiet second query.</strong> Ravi Menon releases the education table at epsilon 1 on Monday. On Thursday a partner asks for the same table again "with fresh noise, the first one looked odd". If Ravi runs it, the two answers together cost 2, and averaging them gets the partner closer to the true counts than either release alone. The guarantee on Monday's file did not change; the guarantee on the people did. Every re-run goes in the ledger.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers post-processing and the unit of privacy</span>
+      <h2>What is free, and who the guarantee is about</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Two facts make a budget usable. First, once an answer is released with differential privacy, anything you compute from it alone, rounding, clamping negatives to zero, adding bins together, costs nothing more: post-processing cannot weaken the guarantee. Second, an epsilon is a promise about some unit, one row, one event, one person per day, one person. Until that unit is named, the epsilon has no meaning a reader can check.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two panels with the same epsilon of 1. Left, event-level: one person contributes five rows and each row is protected at epsilon 1, so the person can be exposed up to five times epsilon, drawn in plum. Right, person-level: the same person's contributions are bounded to one, the other four rows are dropped by the cap, and epsilon 1 covers the whole person. Constructed illustration.">
+        <defs>
+          <filter id="b6bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="37" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b6bHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b6bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b6bH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b6bL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b6bS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b6bW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b6bX { font: 800 18px Inter, sans-serif; fill: #FFFFFF; }
+          .b6bN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b6bH" x="30" y="28">THE SAME EPSILON 1, TWO DIFFERENT UNITS OF PRIVACY</text>
+
+        <g filter="url(#b6bSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="50" width="400" height="244" rx="12" transform="rotate(-0.4 230 172)" fill="#FFFFFF"/>
+          <rect x="450" y="50" width="400" height="244" rx="12" transform="rotate(0.4 650 172)" fill="#F7F6E4" stroke="#7A7600"/>
+          <!-- left: five rows from one person, each protected separately -->
+          <rect x="50" y="110" width="200" height="24" rx="5" transform="rotate(-1 150 122)" fill="#FFFFFF"/>
+          <rect x="50" y="142" width="200" height="24" rx="5" transform="rotate(1 150 154)" fill="#FFFFFF"/>
+          <rect x="50" y="174" width="200" height="24" rx="5" transform="rotate(-1 150 186)" fill="#FFFFFF"/>
+          <rect x="50" y="206" width="200" height="24" rx="5" transform="rotate(1 150 218)" fill="#FFFFFF"/>
+          <rect x="50" y="238" width="200" height="24" rx="5" transform="rotate(-1 150 250)" fill="#FFFFFF"/>
+          <path d="M262 110 Q274 110 274 124 L274 176 Q274 186 284 186 Q274 186 274 196 L274 248 Q274 262 262 262"/>
+          <rect x="294" y="114" width="122" height="144" rx="10" transform="rotate(-1 355 186)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <!-- right: the cap bounds the person to one contribution -->
+          <rect x="470" y="110" width="200" height="24" rx="5" transform="rotate(1 570 122)" fill="#FFFFFF"/>
+          <rect x="470" y="142" width="200" height="24" rx="5" transform="rotate(-1 570 154)" stroke="#D2D0BC" stroke-dasharray="5 5"/>
+          <rect x="470" y="174" width="200" height="24" rx="5" transform="rotate(1 570 186)" stroke="#D2D0BC" stroke-dasharray="5 5"/>
+          <rect x="470" y="206" width="200" height="24" rx="5" transform="rotate(-1 570 218)" stroke="#D2D0BC" stroke-dasharray="5 5"/>
+          <rect x="470" y="238" width="200" height="24" rx="5" transform="rotate(1 570 250)" stroke="#D2D0BC" stroke-dasharray="5 5"/>
+          <path d="M462 138 L680 138" stroke="#4A4700" stroke-dasharray="8 5"/>
+          <path d="M680 122 L708 122" marker-end="url(#b6bAr)"/>
+          <rect x="714" y="100" width="120" height="104" rx="10" transform="rotate(1 774 152)" fill="#4A4700" stroke="#4A4700"/>
+          <!-- doodle: a padlock under the person-level box -->
+          <rect x="762" y="252" width="24" height="20" rx="3" stroke="#4A4700"/>
+          <path d="M767 252 L767 244 Q774 234 781 244 L781 252" stroke="#4A4700"/>
+        </g>
+
+        <text class="b6bH" x="48" y="76">EVENT-LEVEL: THE UNIT IS ONE ROW</text>
+        <text class="b6bS" x="48" y="94">epsilon 1 protects each row on its own</text>
+        <text class="b6bL" x="62" y="127">person P · visit 1</text>
+        <text class="b6bL" x="62" y="159">person P · visit 2</text>
+        <text class="b6bL" x="62" y="191">person P · visit 3</text>
+        <text class="b6bL" x="62" y="223">person P · visit 4</text>
+        <text class="b6bL" x="62" y="255">person P · visit 5</text>
+        <text class="b6bW" x="308" y="140">one person,</text>
+        <text class="b6bW" x="308" y="158">five rows</text>
+        <text class="b6bX" x="308" y="196">up to 5x</text>
+        <text class="b6bW" x="308" y="220">epsilon for P</text>
+        <text class="b6bW" x="308" y="238">as a whole</text>
+
+        <text class="b6bH" x="468" y="76">PERSON-LEVEL: THE UNIT IS ONE PERSON</text>
+        <text class="b6bS" x="468" y="94">bound each person's contribution first</text>
+        <text class="b6bL" x="482" y="127">person P · visit 1</text>
+        <text class="b6bS" x="482" y="159">visit 2, dropped</text>
+        <text class="b6bS" x="482" y="191">visit 3, dropped</text>
+        <text class="b6bS" x="482" y="223">visit 4, dropped</text>
+        <text class="b6bS" x="482" y="255">visit 5, dropped</text>
+        <text class="b6bS" x="690" y="226">cap: 1 row per person</text>
+        <text class="b6bW" x="728" y="126">one person,</text>
+        <text class="b6bW" x="728" y="144">epsilon 1</text>
+        <text class="b6bW" x="728" y="162">covers all</text>
+        <text class="b6bW" x="728" y="180">of P</text>
+
+        <text class="b6bN" x="30" y="318">Constructed illustration. In Brightwater's extract one person is one row, so the two units coincide.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - an epsilon without its unit is a number without a currency</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Post-processing is free<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>The property.</strong> It is a well-known property of differential privacy that any computation on a released answer, which does not go back to the raw rows, keeps the same guarantee. The noise has already done its work; nothing you do to its output can recover what it hid.</p>
+        <p><strong>What counts.</strong> Rounding to whole people. Clamping negative counts to zero (a count of -3.8 is impossible and readers stop trusting a table that shows one). Adding the 16 education counts into five broader groups. Computing shares. Drawing a chart. All free.</p>
+        <p><strong>What does not count.</strong> Anything that touches the rows again: a fresh query, a re-run "to check", a join back to the extract. Those spend budget. And free in privacy is not free in accuracy: clamping only ever pushes counts up, so a sum of clamped counts runs high. Say which post-processing you did, so a reader knows the bias it adds.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>NIST SP 800-226 on the unit of privacy<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>The unit.</strong> NIST SP 800-226, Guidelines for Evaluating Differential Privacy Guarantees (Near, Darais, Lefkovitz and Howarth, March 2025), gives the unit of privacy its own section, 2.4. Its key takeaway: user-level privacy provides stronger guarantees than attribute-level, user-day-level or event-level privacy. It also shows that guarantees with different units are not directly comparable: an event-level epsilon 1 and a user-level epsilon 1 are different promises.</p>
+        <p><strong>Bounding contributions.</strong> When one person can contribute many events, the way to a user-level guarantee is to bound how much each person contributes before the noise is added, as the cap in the figure does. The cap costs data, which is the honest price of the stronger unit.</p>
+        <p><strong>Epsilon is one component of many.</strong> The publication's Figure 1, "Components of a differential privacy guarantee", sets epsilon among the unit of privacy, the trust model, the query model, side channels, access control, security, data collection, exposure, algorithms and correctness, bias and utility, and says each component depends on those below it. A release record that states only epsilon has stated one component.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Constructed Brightwater example: whose budget is it?</strong> Dr Hana Seow's three university partners each want their own tables, and each asks for "a budget of 1". Lim Su-Ann, the data protection officer, asks the question that settles it: are the people in the three partners' tables different people? They are not. All three tables come from the same 32,561 rows, and the partners can share what they receive. Composition does not care who asked, so the budget belongs to the people in the file, and the three partners split one total between them.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers a real budget</span>
+      <h2>What a published budget looks like</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Textbook examples use epsilon around 1. On 9 June 2021 the US Census Bureau announced the privacy-loss budget for the 2020 Census redistricting data product: epsilon 19.61, made of 17.14 for the persons file and 2.47 for the housing unit data. Composition is what lets a budget be written as parts that add to a total. The size of the number is what starts the argument.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two bars on one linear epsilon scale from 0 to 20. The top bar is the 2020 Census redistricting data product budget of 19.61, split into 17.14 for the persons file, in plum, and 2.47 for housing units. The bottom bar is a textbook-scale epsilon of 1, a short stub one twentieth of the scale.">
+        <defs>
+          <filter id="b6cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="41" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b6cHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b6cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b6cH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b6cL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b6cS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b6cV { font: 800 18px Inter, sans-serif; fill: #4A4700; }
+          .b6cW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b6cA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .b6cN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b6cH" x="30" y="28">ONE LINEAR SCALE: THE REDISTRICTING BUDGET BESIDE A TEXTBOOK EPSILON OF 1</text>
+
+        <g filter="url(#b6cSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="60" y="76" width="600" height="50" rx="4" transform="rotate(-0.3 360 101)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="660" y="76" width="86" height="50" rx="4" transform="rotate(0.3 703 101)" fill="url(#b6cHc)"/>
+          <rect x="60" y="190" width="35" height="50" rx="4" transform="rotate(-0.8 77 215)" fill="#7A7600" stroke="#7A7600"/>
+          <path d="M60 266 L760 266" stroke="#57553F" stroke-width="1.4"/>
+          <path d="M60 260 L60 272 M235 260 L235 272 M410 260 L410 272 M585 260 L585 272 M760 260 L760 272" stroke="#57553F" stroke-width="1.4"/>
+          <!-- doodle: a pointer from the note to the stub -->
+          <path d="M200 206 Q150 196 104 210" marker-end="url(#b6cAr)"/>
+        </g>
+
+        <rect x="672" y="88" width="62" height="24" rx="5" fill="#FFFFFF"/>
+        <text class="b6cW" x="76" y="98">PERSONS FILE</text>
+        <text class="b6cW" x="76" y="116">epsilon 17.14</text>
+        <text class="b6cL" x="686" y="105">2.47</text>
+        <text class="b6cS" x="660" y="146">housing units</text>
+        <text class="b6cV" x="770" y="108">19.61</text>
+        <text class="b6cS" x="770" y="126">total</text>
+        <text class="b6cS" x="60" y="66">2020 Census, redistricting data product only</text>
+
+        <text class="b6cV" x="104" y="236">1</text>
+        <text class="b6cL" x="210" y="204">a textbook-scale epsilon</text>
+        <text class="b6cS" x="210" y="222">the size of most worked examples</text>
+
+        <text class="b6cA" x="56" y="288">0</text>
+        <text class="b6cA" x="231" y="288">5</text>
+        <text class="b6cA" x="402" y="288">10</text>
+        <text class="b6cA" x="577" y="288">15</text>
+        <text class="b6cA" x="752" y="288">20</text>
+
+        <text class="b6cN" x="30" y="310">Census Bureau press release CB21-CN.42, 9 June 2021. Both bars drawn to one linear epsilon scale.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the parts add to the total because of composition; whether the total is too large is the debate</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Reading the release honestly<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>What it says.</strong> Press release CB21-CN.42 sets "a total privacy-loss budget for the redistricting data product" of epsilon 19.61, which includes 17.14 for the persons file and 2.47 for the housing unit data. 17.14 + 2.47 = 19.61: the parts compose to the total. The release names the TopDown Algorithm as the method being prepared for final testing.</p>
+        <p><strong>What it does not say.</strong> The figure covers the redistricting data product only, not the whole 2020 Census output. The budgets for the later products are not covered here. The Bureau's use of differential privacy for 2020 is widely reported; the release itself speaks of a privacy-loss budget and the TopDown Algorithm.</p>
+        <p><strong>The lesson for a release record.</strong> A real budget is written as a total and its parts, with the product it covers named. That is the shape of the budget line you write in the build-along.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Is 19.61 too large? Teach the debate<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>The case that it is large.</strong> The definition bounds how much any output can change when one person is added or removed by a factor of exp(epsilon). At epsilon 1 that factor is modest; at 19.61 the bound on paper is very loose. By textbook standards it is a large number, and some privacy researchers read it as a weak formal guarantee.</p>
+        <p><strong>The case for it.</strong> Redistricting needs accurate counts for small areas, because the data is used to draw districts of equal population. A smaller epsilon would have meant more noise on exactly those small counts. The budget was chosen to balance that accuracy against the privacy loss, and a stated bound, even a loose one, is something a reader can check and argue with.</p>
+        <p><strong>What an engineer takes from it.</strong> There is no agreed safe epsilon. The literature has not settled one and you should not pretend to. What you can do is state the number, its unit, what it covers, and why it was chosen, so the people who disagree are disagreeing about the same thing.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>A budget written as parts.</strong> The 2020 Census redistricting release did not publish one epsilon; it published 19.61 and how it divides between persons and housing units. That is composition used as an accounting tool: the Bureau decided where the privacy loss would be spent before anyone saw a table. Brightwater's ledger tonight is the same idea at the scale of three university partners.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Plan a budget for three partners</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">Dr Hana Seow has agreed a total of epsilon 1 for the education table, across all three partner teams, for the whole project. Ravi Menon has to turn that into a plan before the first query runs. Use the widget to see what each share buys, then write the ledger and the budget line Lim Su-Ann will sign. The widget's draw is seeded: the widget prints the numbers quoted in each step.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn budget ledger. Columns: partner, queries, epsilon each, spent, error per count, running total. Team A: 1 query at 0.5, spent 0.5, error 1.88, running total 0.5. Team B: 3 queries at 0.1, spent 0.3, error 9.42, running total 0.8. Team C: 1 query at 0.2, spent 0.2, error 4.71, running total 1.0 of 1.0, drawn in plum. Constructed ledger; errors are seeded widget draws on the real counts.">
+        <defs>
+          <filter id="b6dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="43" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b6dHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b6dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b6dH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b6dL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b6dS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b6dA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .b6dW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b6dN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b6dH" x="30" y="28">THE LEDGER: EVERY QUERY WRITTEN DOWN, THE RUNNING TOTAL NEVER PAST THE CAP</text>
+
+        <g filter="url(#b6dSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="50" width="820" height="186" rx="12" transform="rotate(-0.3 440 143)" fill="#FFFFFF"/>
+          <rect x="40" y="60" width="800" height="34" rx="6" transform="rotate(0.2 440 77)" fill="#F7F6E4" stroke="#7A7600"/>
+          <path d="M40 140 L840 140 M40 184 L840 184" stroke="#D2D0BC" stroke-width="1.4"/>
+          <rect x="716" y="192" width="118" height="34" rx="6" transform="rotate(-1 775 209)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <!-- doodle: a tick beside the closed ledger -->
+          <path d="M802 252 L812 264 L834 240" stroke="#4A4700"/>
+        </g>
+
+        <text class="b6dA" x="56" y="82">PARTNER</text>
+        <text class="b6dA" x="210" y="82">QUERIES</text>
+        <text class="b6dA" x="320" y="82">EPSILON EACH</text>
+        <text class="b6dA" x="460" y="82">SPENT</text>
+        <text class="b6dA" x="560" y="82">ERROR PER COUNT</text>
+        <text class="b6dA" x="726" y="82">RUNNING TOTAL</text>
+
+        <text class="b6dL" x="56" y="122">Team A</text>
+        <text class="b6dL" x="210" y="122">1</text>
+        <text class="b6dL" x="320" y="122">0.5</text>
+        <text class="b6dL" x="460" y="122">0.5</text>
+        <text class="b6dL" x="560" y="122">1.88</text>
+        <text class="b6dL" x="726" y="122">0.5</text>
+
+        <text class="b6dL" x="56" y="166">Team B</text>
+        <text class="b6dL" x="210" y="166">3</text>
+        <text class="b6dL" x="320" y="166">0.1</text>
+        <text class="b6dL" x="460" y="166">0.3</text>
+        <text class="b6dL" x="560" y="166">9.42</text>
+        <text class="b6dL" x="726" y="166">0.8</text>
+
+        <text class="b6dL" x="56" y="214">Team C</text>
+        <text class="b6dL" x="210" y="214">1</text>
+        <text class="b6dL" x="320" y="214">0.2</text>
+        <text class="b6dL" x="460" y="214">0.2</text>
+        <text class="b6dL" x="560" y="214">4.71</text>
+        <text class="b6dW" x="730" y="214">1.0 of 1.0</text>
+
+        <text class="b6dN" x="30" y="262">Constructed Brightwater ledger. Errors are the seeded widget draw at each epsilon per query.</text>
+        <text class="b6dN" x="30" y="282">Unit of privacy: one person, who is one row in this extract.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the ledger is the budget: if a query is not on it, it was not allowed</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Step 1 · One query, the whole budget.</strong> Leave the widget at its default: total epsilon 1, 1 query. Read the metrics.</p>
+        <div data-pe="dp" id="b6-dp"></div>
+        <div class="prompt-box good"><span class="label">★ Step 1 · epsilon 1, 1 query</span>epsilon per query:     1
+noise scale b:         1
+mean absolute error:   0.94 people per count
+Preschool (true 0):    released -3.8</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 2 · Share it ten ways.</strong> Keep the total at 1 and slide "Queries sharing it" to 10. Nothing about the data changed; only the share each answer gets.</p>
+        <div class="prompt-box good"><span class="label">★ Step 2 · epsilon 1 over 10 queries</span>epsilon per query:     0.1
+noise scale b:         10
+mean absolute error:   9.42 people per count, every answer
+Preschool (true 0):    released -37.5
+cost of all ten:       0.1 x 10 = 1   (Corollary 3.15)</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 3 · Find where Preschool stops being useful.</strong> Preschool's true count is 0 and the next level, 1st-4th, is 6. A released Preschool value is useful while it still tells those two apart. Step the queries up from 1 and read Preschool's released value each time. Then tick "Round and clamp at 0" and watch what post-processing does to it.</p>
+        <div class="prompt-box good"><span class="label">★ Step 3 · read the widget, total epsilon 1</span>queries   Preschool released   off by   vs the gap of 6 to 1st-4th
+   1            -3.8             3.8     smaller: still usable
+   2            -7.5             7.5     larger: no longer usable
+   3           -11.3            11.3     and 1st-4th itself reads -0.3
+  10           -37.5            37.5
+
+with "Round and clamp at 0" ticked:
+   Preschool reads 0 at every setting (free post-processing)
+   mean absolute error at 1 query:   0.75
+   mean absolute error at 10 queries: 6.13
+answer: past 1 query, Preschool's answer is noise. Clamping hides an impossible
+value; it does not buy back the precision the split gave away.</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 4 · Write the ledger.</strong> Split epsilon 1 across Brightwater's three partner teams. The shares below are one constructed plan; change them, but the running total must end at or below 1. For each partner, write the post-processing it may do for free.</p>
+        <div class="prompt-box good"><span class="label">★ Step 4 · the ledger</span>partner   queries   epsilon each   spent   running total   error per count
+Team A    1         0.5            0.5     0.5             1.88
+Team B    3         0.1            0.3     0.8             9.42
+Team C    1         0.2            0.2     1.0             4.71
+total cap: 1.0   spent: 1.0   left: 0.0
+
+free for every partner (post-processing, no further epsilon):
+  round to whole people; clamp negatives to 0;
+  add the 16 levels into broader groups; compute shares; chart it
+not free: any re-run, any new query, any join back to the rows
+Team A: ______________________________________
+Team B: ______________________________________
+Team C: ______________________________________</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 5 · The budget line for the release record.</strong> One block, the shape of the Census release: a total, its parts, what it covers, and the unit. Engineer session 8 puts it on the release record beside k, l and the linkage numbers.</p>
+        <div class="prompt-box good"><span class="label">★ Step 5 · the budget line</span>query:            count of &gt;50K earners per education level, 16 bins
+sensitivity:      1 (adding or removing one person changes one count by 1)
+unit of privacy:  one person; one person = one row in this extract
+total budget:     epsilon 1.0, for the whole project, all partners together
+composition:      simple sum (Dwork and Roth 2014, Corollary 3.15)
+parts:            Team A 0.5 · Team B 0.3 · Team C 0.2
+post-processing:  rounding and clamping at 0, applied, stated
+re-runs:          none allowed; any new query needs a new budget decision
+signed:           Lim Su-Ann, data protection officer, ____ / ____ / ____</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>Close the ledger, do not top it up.</strong> When the running total reaches the cap, the budget is spent. A partner who needs more is asking for a new decision about the same people, and that decision belongs to whoever signed the first one, not to the engineer who happens to have query access.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before Engineer session 7</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li><strong>Rewrite the ledger for five partners.</strong> Keep the total at 1. Read the error each share buys in the widget, and decide which partner gets the sharpest answer and why.</li>
+      <li><strong>Name the unit for a dataset you hold.</strong> Pick one table where a person can appear in many rows (transactions, visits, logins). Write its unit of privacy and the contribution cap you would need for a person-level guarantee.</li>
+      <li><strong>List your free moves.</strong> For one report you produce, mark every step that is post-processing and every step that touches the raw rows again.</li>
+      <li><strong>Write the argument both ways.</strong> One paragraph for and one against a large epsilon like 19.61 for a product that needs accurate small-area counts. Do not pick a winner; state what each side is protecting.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Engineer session 6 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · Brightwater releases one table at epsilon 0.4 and, later, another at epsilon 0.6, both about the same 32,561 people. What does the composition theorem say about the two together?</p>
+      <button class="qopt" type="button">A · They stay at 0.6, the larger of the two</button>
+      <button class="qopt" type="button">B · They average to 0.5</button>
+      <button class="qopt" type="button">C · Together they are at most 0.4 + 0.6 = 1 differentially private</button>
+      <button class="qopt" type="button">D · They cost nothing extra, because the tables are different</button>
+      <p class="qwhy">Theorem 3.14 and Corollary 3.15 in Dwork and Roth: epsilons of mechanisms run on the same people add. Different tables of the same people still compose.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">2 · A partner rounds Brightwater's noisy counts, clamps the negatives to 0 and adds the 16 levels into five groups. How much more privacy budget does that cost?</p>
+      <button class="qopt" type="button">A · Nothing: computing on a released answer alone is post-processing and cannot weaken the guarantee</button>
+      <button class="qopt" type="button">B · One extra epsilon per step</button>
+      <button class="qopt" type="button">C · The whole remaining budget</button>
+      <button class="qopt" type="button">D · It depends on how many partners there are</button>
+      <p class="qwhy">Post-processing is free in privacy because it never touches the rows. It is not free in accuracy: clamping adds an upward bias, so say you did it.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">3 · Two teams both report "epsilon 1". One protects each event, the other each person. Why must a release state its unit of privacy?</p>
+      <button class="qopt" type="button">A · The unit only matters for the noise scale, not the guarantee</button>
+      <button class="qopt" type="button">B · Event-level is always stronger than person-level</button>
+      <button class="qopt" type="button">C · Units are a legal requirement and have no engineering meaning</button>
+      <button class="qopt" type="button">D · The guarantees protect different things and are not directly comparable; a person with many events gets far less from an event-level epsilon</button>
+      <p class="qwhy">NIST SP 800-226 Section 2.4: user-level privacy is stronger than event-level, and guarantees with different units are not directly comparable. An epsilon without its unit cannot be read.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The composition theorem: Theorem 3.14 (two mechanisms, epsilon1 + epsilon2) and Corollary 3.15 (k mechanisms, sum of epsilons); advanced composition, Theorem 3.20, mentioned only</span><span class="note">Dwork and Roth 2014, The Algorithmic Foundations of Differential Privacy, Foundations and Trends in Theoretical Computer Science 9(3-4); read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The unit of privacy (Section 2.4), user-level stronger than event-level, units not directly comparable, bounding contributions; Figure 1, components of a guarantee</span><span class="note">NIST SP 800-226, Guidelines for Evaluating Differential Privacy Guarantees, March 2025; read at source; later revisions not checked</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The redistricting data product budget: epsilon 19.61 = 17.14 persons file + 2.47 housing units; TopDown Algorithm</span><span class="note">US Census Bureau press release CB21-CN.42, 9 June 2021; read at source; redistricting product only</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Post-processing is free; the debate over large epsilon values</span><span class="note">Stated as a well-known property and as an open debate; no agreed safe epsilon exists</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">MAE 0.94 at epsilon 1, 9.42 at 0.1 each over 10 queries, 1.88 at 0.5, 4.71 at 0.2; Preschool released -3.8, -7.5, -11.3, -37.5; clamped MAE 0.75 and 6.13</span><span class="note">Computed on the 32,561 real UCI Adult rows (Becker and Kohavi 1996, CC BY 4.0) by the seeded engine the widget runs</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Brightwater, Dr Hana Seow, Ravi Menon, Lim Su-Ann, the three partner teams and their ledger</span><span class="note">Constructed and labelled</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Engineer session 6 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Composition</b><span>Epsilons of queries on the same people add (Dwork and Roth Thm 3.14, Cor 3.15).</span></div>
+      <div class="cheat-item"><b>The split</b><span>Total 1 over 10 queries: 0.1 each, b = 10, error 9.42 per count instead of 0.94.</span></div>
+      <div class="cheat-item"><b>Post-processing</b><span>Round, clamp, add bins, chart: free in privacy, not free in accuracy.</span></div>
+      <div class="cheat-item"><b>Unit of privacy</b><span>Name it. Person-level beats event-level; different units do not compare.</span></div>
+      <div class="cheat-item"><b>Whose budget</b><span>The people's. Partners asking about the same rows share one total.</span></div>
+      <div class="cheat-item"><b>A real budget</b><span>Census redistricting 2020: 19.61 = 17.14 + 2.47. Large by textbook terms; debated.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>You can spend a budget and write it down. Engineer session 7 tries a different route: release no real rows at all, generate synthetic ones, and test whether a generator that looks safe is quietly copying the people it learned from.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Engineer session 6 of 8 · learn-privacy-engineering-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b5-noise-with-a-guarantee.html">← Prev: Noise with a guarantee</a> &nbsp;·&nbsp; <a href="b7-synthetic-data-and-its-leaks.html">Next: Synthetic data and its leaks →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/pe-data.js?v=1"></script>
+<script src="../assets/pe-engine.js?v=1"></script>
+<script src="../assets/pe-desk.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

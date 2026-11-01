@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Engineer session 2 of 8. k-anonymity as Sweeney defined it, generalisation hierarchies for six real census columns, record suppression, and what k costs: 725 rows at k 5, 1,801 at k 10, and why heavier generalisation suppresses only 345.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Generalise and suppress to k - learn privacy engineering with phoebe">
+<meta property="og:description" content="Engineer session 2 of 8. Coarsen five columns and 17.18% alone becomes 0.57%; suppress classes under 5 and 725 real rows leave the file.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/courses/b2-generalise-and-suppress-to-k.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Generalise and suppress to k - learn privacy engineering with phoebe">
+<meta name="twitter:description" content="Engineer session 2 of 8. k-anonymity, generalisation hierarchies, record suppression and the precision each step gives up, on real rows.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Engineer session 2 · Generalise and suppress to k - learn privacy engineering with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=2">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-privacy-engineering-with-phoebe</a> / Engineer session 2 of 8</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Privacy Engineering with Phoebe · Engineer session 2 of 8</div>
+    <h1>Generalise and suppress <span class="accent">to k</span></h1>
+    <p class="sub">Last session ended with a number: 17.18% of Brightwater's 32,561 real rows sit alone on six ordinary facts. Tonight you make the classes bigger. Climb each column up a generalisation hierarchy, drop the rows that still stand in classes too small to hide in, and measure k on the result. Then count what it cost: the rows you threw away, who they were, and the precision the partners no longer get.</p>
+    <div class="chip-row">
+      <span class="chip level">🟢 Engineer</span>
+      <span class="chip audience">Data engineers and analysts who prepare a release</span>
+      <span class="chip audience">pandas or the in-page widget</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · k, hierarchies, suppression</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: every class at least k</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where we start</h2>
+    </div>
+    <p class="lede">Bring the finding sentence from Engineer session 1: on six columns a colleague could know, 17.18% of rows are alone, and education does most of the identifying. Ravi Menon, Brightwater's data engineer, now has to change the file so that nobody is alone, without wrecking the analysis Dr Hana Seow's three university partners asked for. Brightwater and its people are constructed. The 32,561 rows are real: the UCI Adult extract of the 1994 US Census. Two tools do almost all of the work in practice, generalisation and record suppression, and one number tells you whether they worked: k.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">★ Build-along = everyone works it through</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> A generalisation hierarchy for each quasi-identifier in a dataset you hold; a pandas script that generalises, groups, suppresses classes under k and prints k achieved and rows suppressed; and one setting line for the release record that says exactly what was coarsened, what k was, and how many real people were removed to get there.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers k-anonymity</span>
+      <h2>k is the size of the smallest crowd</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Latanya Sweeney gave the measure its name in 2002. A release satisfies k-anonymity when every combination of quasi-identifier values in it appears at least k times. Put plainly: anyone an outsider looks up by those values lands in a group of at least k people, and "cannot be distinguished from at least k-1 individuals" in the release. k is never a property of a column. It is the size of the smallest equivalence class, which is why one lone row anywhere in the file sets k to 1.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three small classes on the left with exact values: a 42-year-old female doctorate born in India, a class of 1 in plum; 45, female, masters, India, a class of 2; 47, female, prof-school, Philippines, a class of 7. An arrow labelled generalise points to one merged class on the right: 40-49, female, postgraduate, outside US, a class of 10, which meets k of 5. Constructed rows to show the mechanism.">
+        <defs>
+          <filter id="b2aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="29" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b2aHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b2aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b2aH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b2aL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b2aS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b2aV { font: 800 16px Inter, sans-serif; fill: #4A4700; }
+          .b2aW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b2aX { font: 800 16px Inter, sans-serif; fill: #FFFFFF; }
+          .b2aA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .b2aN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b2aH" x="30" y="28">MERGE SMALL CLASSES UNTIL EVERY CLASS HOLDS AT LEAST K PEOPLE</text>
+
+        <g filter="url(#b2aSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="50" width="380" height="62" rx="10" transform="rotate(-0.6 220 81)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="30" y="126" width="380" height="62" rx="10" transform="rotate(0.5 220 157)" fill="#FFFFFF"/>
+          <rect x="30" y="202" width="380" height="62" rx="10" transform="rotate(-0.4 220 233)" fill="#FFFFFF"/>
+          <circle cx="54" cy="96" r="6" fill="#FFFFFF" stroke="#FFFFFF"/>
+          <circle cx="54" cy="172" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="72" cy="172" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="54" cy="248" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="72" cy="248" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="90" cy="248" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="108" cy="248" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="126" cy="248" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="144" cy="248" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="162" cy="248" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <path d="M420 157 L478 157" marker-end="url(#b2aAr)"/>
+          <rect x="490" y="96" width="360" height="124" rx="12" transform="rotate(0.6 670 158)" fill="#F7F6E4" stroke="#7A7600"/>
+          <circle cx="514" cy="196" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="532" cy="196" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="550" cy="196" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="568" cy="196" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="586" cy="196" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="604" cy="196" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="622" cy="196" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="640" cy="196" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="658" cy="196" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <circle cx="676" cy="196" r="6" fill="#D6D29A" stroke="#4A4700"/>
+          <!-- doodle: a k = 5 measuring bracket under the merged class -->
+          <path d="M514 236 L514 244 L586 244 L586 236" stroke="#4A4700"/>
+        </g>
+
+        <text class="b2aW" x="46" y="76">42 · Female · Doctorate · born in India</text>
+        <text class="b2aX" x="340" y="78">size 1</text>
+        <text class="b2aL" x="46" y="152">45 · Female · Masters · born in India</text>
+        <text class="b2aV" x="340" y="154">size 2</text>
+        <text class="b2aL" x="46" y="228">47 · Female · Prof-school · Philippines</text>
+        <text class="b2aV" x="340" y="230">size 7</text>
+
+        <text class="b2aA" x="420" y="146">generalise</text>
+
+        <text class="b2aL" x="506" y="122">40-49 · Female · Postgraduate · Outside US</text>
+        <text class="b2aV" x="506" y="152">size 10</text>
+        <text class="b2aS" x="506" y="172">each person hides among 9 others</text>
+        <text class="b2aA" x="596" y="248">k of 5</text>
+
+        <text class="b2aN" x="30" y="296">Constructed rows to show the mechanism. On the real file, six exact columns give 8,553 classes, k of 1.</text>
+        <text class="b2aN" x="30" y="318">She set k to 1. After the merge she is one of ten, and the next smallest class sets k.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - k is a property of the smallest class, so one lone row anywhere sets it to 1</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What k counts, and what it does not<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>k counts quasi-identifiers only.</strong> Singapore's Personal Data Protection Commission says the same in its Guide to Basic Anonymisation (2022): direct identifiers are removed first, and k is computed over the indirect identifiers. Leave a name in and k is 1 whatever you do to age.</p>
+        <p><strong>k depends on which columns you declared.</strong> k of 5 on six columns says nothing about a seventh column you also published. Engineer session 4 shows how one undeclared column breaks a k you are proud of.</p>
+        <p><strong>k says nothing about the sensitive column.</strong> Five people who share their quasi-identifiers and all have the same occupation are 5-anonymous, and an outsider still learns the occupation. That gap is Engineer session 3.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Which k? What the guidance says, and what it leaves open<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>PDPC's guide (p24) states that "the industry threshold for k-anonymity value is at 3 or 5", and asks for a higher value, 5 or more, for sharing data outside the organisation, with a lower value such as 3 acceptable for internal sharing or long-term retention. It does not claim that 5 is safe in every setting. The research literature has never agreed on one number either: the right k depends on who receives the file, what they could join it with, and what controls bind them. Treat 3 and 5 as the floor a reviewer will expect, and argue upward from the release environment. What the PDPA requires of an anonymised release is a legal question; <a href="https://phoebefu6.github.io/learn-pdpa-dnc-with-phoebe/">PDPA and DNC ↗</a> owns it.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The regulator's own worked example.</strong> When PDPC walks through computing re-identification risk in its Guide to Basic Anonymisation, the example dataset is taxi data and the k it works to is 5. That is the threshold Brightwater's reviewers will look for first.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers generalisation hierarchies</span>
+      <h2>Climb a column one step at a time</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Generalisation replaces a value with a broader one: an exact age with a band, a specific degree with a level. PDPC lists it among the basic techniques in Annex A of its guide. The engineering discipline is to write the steps down before you start, as a hierarchy for each quasi-identifier, from exact at the bottom to removed at the top. Then every setting is a choice of one level per column, it can be reproduced, and the release record can name it.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 346" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two hierarchies drawn as ladders. Age: exact with 73 values, 5-year bands, 10-year bands, 20-year bands starting at 17, removed. Education: exact with 16 values, 5 levels, degree yes or no, removed. The 10-year band and the 5 levels are shaded as the rung 3 setting. A panel on the right shows classes on the six columns falling from 8,553 at rung 1 to 872 at rung 3 and 227 at rung 6, and the share of rows alone falling from 17.18% to 7.18%, 0.57% and 0.09%.">
+        <defs>
+          <filter id="b2bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="31" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b2bHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b2bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b2bH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b2bL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b2bS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b2bV { font: 800 16px Inter, sans-serif; fill: #4A4700; }
+          .b2bB { font: 800 16px Inter, sans-serif; fill: #5C1A33; }
+          .b2bA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .b2bN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b2bH" x="30" y="28">TWO HIERARCHIES, AND WHAT CLIMBING THEM DOES TO THE CLASSES</text>
+
+        <g filter="url(#b2bSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M42 282 L42 72" marker-end="url(#b2bAr)" stroke="#57553F"/>
+          <rect x="58" y="66" width="240" height="34" rx="8" transform="rotate(-0.5 178 83)" fill="#FFFFFF"/>
+          <rect x="58" y="112" width="240" height="34" rx="8" transform="rotate(0.4 178 129)" fill="#FFFFFF"/>
+          <rect x="58" y="158" width="240" height="34" rx="8" transform="rotate(-0.4 178 175)" fill="#F7F6E4" stroke="#7A7600"/>
+          <rect x="58" y="204" width="240" height="34" rx="8" transform="rotate(0.5 178 221)" fill="#FFFFFF"/>
+          <rect x="58" y="250" width="240" height="34" rx="8" transform="rotate(-0.3 178 267)" fill="#FFFFFF"/>
+
+          <path d="M318 282 L318 72" marker-end="url(#b2bAr)" stroke="#57553F"/>
+          <rect x="332" y="66" width="260" height="34" rx="8" transform="rotate(0.4 462 83)" fill="#FFFFFF"/>
+          <rect x="332" y="112" width="260" height="34" rx="8" transform="rotate(-0.4 462 129)" fill="#FFFFFF"/>
+          <rect x="332" y="158" width="260" height="80" rx="8" transform="rotate(0.3 462 198)" fill="#F7F6E4" stroke="#7A7600"/>
+          <rect x="332" y="250" width="260" height="34" rx="8" transform="rotate(-0.5 462 267)" fill="#FFFFFF"/>
+
+          <rect x="616" y="60" width="240" height="236" rx="12" transform="rotate(-0.4 736 178)" fill="#FFFFFF"/>
+          <rect x="632" y="114" width="200" height="12" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="632" y="162" width="20" height="12" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="632" y="210" width="6" height="12" fill="#7A7600" stroke="#7A7600"/>
+          <!-- doodle: a small ladder by the heading -->
+          <path d="M832 10 L832 42 M848 10 L848 42 M832 18 L848 18 M832 26 L848 26 M832 34 L848 34" stroke="#4A4700" stroke-width="1.6"/>
+        </g>
+
+        <text class="b2bA" x="58" y="56">AGE</text>
+        <text class="b2bL" x="70" y="88">removed · *</text>
+        <text class="b2bL" x="70" y="134">20-year · 17-36, 37-56 ...</text>
+        <text class="b2bL" x="70" y="180">10-year · 30-39, 40-49 ...</text>
+        <text class="b2bL" x="70" y="226">5-year · 30-34, 35-39 ...</text>
+        <text class="b2bL" x="70" y="272">exact · 73 values, 17 to 90</text>
+
+        <text class="b2bA" x="332" y="56">EDUCATION</text>
+        <text class="b2bL" x="344" y="88">removed · *</text>
+        <text class="b2bL" x="344" y="134">degree yes / no</text>
+        <text class="b2bL" x="344" y="178">5 levels</text>
+        <text class="b2bS" x="344" y="196">No high school diploma · High school</text>
+        <text class="b2bS" x="344" y="212">Some college or associate</text>
+        <text class="b2bS" x="344" y="228">Bachelors · Postgraduate</text>
+        <text class="b2bL" x="344" y="272">exact · 16 values</text>
+
+        <text class="b2bH" x="632" y="86">CLASSES ON SIX COLUMNS</text>
+        <text class="b2bL" x="632" y="106">rung 1 · all exact</text>
+        <text class="b2bV" x="836" y="106" text-anchor="end">8,553</text>
+        <text class="b2bL" x="632" y="154">rung 3 · five coarsened</text>
+        <text class="b2bB" x="836" y="154" text-anchor="end">872</text>
+        <text class="b2bL" x="632" y="202">rung 6 · heavy</text>
+        <text class="b2bV" x="836" y="202" text-anchor="end">227</text>
+        <text class="b2bS" x="632" y="244">rows alone, rungs 1, 2, 3, 6</text>
+        <text class="b2bV" x="632" y="266">17.18% · 7.18%</text>
+        <text class="b2bV" x="632" y="288">0.57% · 0.09%</text>
+
+        <text class="b2bN" x="30" y="316">Shaded: the rung 3 setting. Rung 2 bands age only; rung 6 climbs age and education one step further.</text>
+        <text class="b2bN" x="30" y="336">Hierarchies as the desk applies them; every count computed from the 32,561 real rows.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - each step up a ladder merges classes, and the number of classes falls by an order of magnitude</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The six hierarchies the desk uses<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Age:</strong> exact, 5-year bands, 10-year bands, 20-year bands (17-36, 37-56 and so on, starting at the youngest age in the file), removed.</p>
+        <p><strong>Education:</strong> the 16 exact values, 5 levels (No high school diploma, High school, Some college or associate, Bachelors, Postgraduate), degree yes or no, removed.</p>
+        <p><strong>Race:</strong> exact, White or not white, removed. <strong>Marital status:</strong> exact, three groups (Married, Never married, Previously married), removed. <strong>Country of birth:</strong> the 42 exact values, three groups (United States, Outside US, Unknown), removed. <strong>Sex:</strong> exact or removed.</p>
+        <p><strong>Rung 3</strong> takes age, race, marital status, education and country one step each and keeps sex exact. Uniqueness falls from 17.18% to 0.57%, and classes from 8,553 to 872.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Designing a hierarchy that analysts can live with<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Each step must merge, never split.</strong> Every value at one level belongs to exactly one value at the next. 5-year bands nest inside 10-year bands; a 7-year band would not, and two settings could then no longer be compared.</p>
+        <p><strong>Follow the analysis, not the alphabet.</strong> Education's 5 levels keep the boundaries labour economists care about (a diploma, a degree, a postgraduate qualification). Grouping "Some college" with "Bachelors" would be the same size and far less useful.</p>
+        <p><strong>Give rare values somewhere to go.</strong> Country of birth has 42 values, and most of them hold a handful of people. "Outside US" is a crude group, and it is the step that takes most migrants out of classes of one. A missing value ("?") deserves its own group, "Unknown", rather than being folded silently into another.</p>
+        <p><strong>Write it down as data.</strong> A hierarchy kept as a mapping table in the repository can be reviewed, versioned and reused at the next release. A hierarchy kept in someone's head is a different release every time.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Constructed Brightwater example</span>
+      <p><strong>Ravi bands age and stops.</strong> Ravi's first instinct is the obvious column: he releases age in 10-year bands and keeps the rest exact. The desk prints 7.18% of rows still alone, rung 2, down from 17.18% but nowhere near safe, because education and country of birth are still doing the identifying. Only when five columns each climb one step does uniqueness drop to 0.57%. One coarse column rarely fixes a file; the identifying is shared out across the combination.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers suppression and what k costs</span>
+      <h2>Suppression removes the people who are hardest to hide</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Generalisation alone leaves some classes small: at rung 3, 0.57% of rows are still alone and k is 1. Record suppression, also in PDPC's Annex A, removes those rows from the release. Set k, drop every class smaller than k, and what remains satisfies k-anonymity by construction. It is cheap to code and expensive in a way that does not show up in a k value: the rows you drop are not a random sample.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 362" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn scatter of rows suppressed against precision kept for four settings. Rung 3, k 1: 0 rows suppressed, precision 61%. Rung 4, k 5: 725 rows, 2.23%, precision 61%. Rung 5, k 10: 1,801 rows, 5.53%, precision 61%. Rung 6, k 10 with heavier generalisation, in plum: 345 rows, 1.06%, precision 51%. A dashed arrow from rung 5 to rung 6 reads generalise more, suppress less.">
+        <defs>
+          <filter id="b2cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="37" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b2cHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b2cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b2cH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b2cL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b2cS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b2cB { font: 800 11px Inter, sans-serif; fill: #5C1A33; }
+          .b2cA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .b2cN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b2cH" x="30" y="28">ROWS SUPPRESSED AGAINST PRECISION KEPT, RUNGS 3 TO 6</text>
+        <text class="b2cA" x="30" y="52">precision kept</text>
+
+        <g filter="url(#b2cSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M100 290 L840 290" stroke="#57553F" stroke-width="1.4"/>
+          <path d="M100 290 L100 62" stroke="#57553F" stroke-width="1.4"/>
+          <path d="M96 70 L104 70 M96 180 L104 180 M340 286 L340 294 M580 286 L580 294 M820 286 L820 294" stroke="#57553F" stroke-width="1.4"/>
+          <circle cx="100" cy="114" r="7" fill="#7A7600" stroke="#4A4700"/>
+          <circle cx="368" cy="114" r="7" fill="#7A7600" stroke="#4A4700"/>
+          <circle cx="764" cy="114" r="7" fill="#7A7600" stroke="#4A4700"/>
+          <circle cx="227" cy="224" r="8" fill="#8E2A4F" stroke="#5C1A33"/>
+          <path d="M752 126 Q520 250 242 222" stroke="#8E2A4F" stroke-dasharray="6 5" marker-end="url(#b2cAr)"/>
+          <!-- doodle: scissors at the suppressed end of the axis -->
+          <circle cx="846" cy="262" r="5" stroke="#4A4700" stroke-width="1.6"/>
+          <circle cx="858" cy="262" r="5" stroke="#4A4700" stroke-width="1.6"/>
+          <path d="M848 257 L862 238 M856 257 L842 238" stroke="#4A4700" stroke-width="1.6"/>
+        </g>
+
+        <text class="b2cA" x="62" y="74">65%</text>
+        <text class="b2cA" x="62" y="184">55%</text>
+        <text class="b2cA" x="62" y="294">45%</text>
+        <text class="b2cA" x="100" y="310" text-anchor="middle">0%</text>
+        <text class="b2cA" x="340" y="310" text-anchor="middle">2%</text>
+        <text class="b2cA" x="580" y="310" text-anchor="middle">4%</text>
+        <text class="b2cA" x="820" y="310" text-anchor="middle">6%</text>
+        <text class="b2cA" x="460" y="328" text-anchor="middle">rows suppressed, share of 32,561</text>
+
+        <text class="b2cL" x="112" y="84">rung 3 · k 1</text>
+        <text class="b2cS" x="112" y="100">0 suppressed · 61%</text>
+        <text class="b2cL" x="368" y="84" text-anchor="middle">rung 4 · k 5</text>
+        <text class="b2cS" x="368" y="100" text-anchor="middle">725 rows · 2.23% · 61%</text>
+        <text class="b2cL" x="764" y="84" text-anchor="middle">rung 5 · k 10</text>
+        <text class="b2cS" x="764" y="100" text-anchor="middle">1,801 rows · 5.53% · 61%</text>
+        <text class="b2cB" x="227" y="250" text-anchor="middle">rung 6 · k 10, heavier</text>
+        <text class="b2cS" x="227" y="266" text-anchor="middle">345 rows · 1.06% · 51%</text>
+        <text class="b2cB" x="520" y="174" text-anchor="middle">generalise more, suppress less</text>
+
+        <text class="b2cN" x="30" y="352">Precision: the desk's rule of thumb, 1 minus average generalisation height. Computed on the real rows.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - raising k with suppression alone throws people away; climbing a hierarchy instead throws detail away</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Two ways to reach k, two different bills<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Suppress more.</strong> Keep rung 3's generalisation and raise k. k of 5 removes 725 rows (2.23%); k of 10 removes 1,801 (5.53%). Precision stays at 61% because no column got coarser. The bill is paid in people.</p>
+        <p><strong>Generalise more.</strong> Rung 6 bands age in 20 years and reduces education to degree yes or no, then asks for k of 10. Classes fall from 872 to 227, so far fewer of them are small, and only 345 rows (1.06%) are suppressed. Precision falls to 51%. The bill is paid in detail.</p>
+        <p><strong>Read precision for what it is.</strong> The desk's precision is a rule of thumb, one minus the average height climbed on the hierarchies: 100% at rung 1, 92% at rung 2, 61% at rungs 3 to 5, 51% at rung 6. It is useful for comparing settings on the same file and says nothing about whether a particular analysis still works. Ask the partner which relationship they need, and test that.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Who gets suppressed<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Small classes are made of rare combinations, so suppression removes the rare first. Computed on the real rows at rung 4 (k of 5): 10.4% of the whole file was born outside the US or has an unknown country of birth, but 68.1% of the 725 suppressed rows were. 14.6% of the file is not white; 46.8% of the suppressed rows are not white. Ravi's release would be 5-anonymous and would quietly under-represent migrants and minorities.</p>
+        <p>That matters twice. A partner studying migrant earnings loses the people the study is about. And a release that silently drops the hard cases looks better on k than its environment deserves. Record the count, record who it fell on, and tell the recipient. Where suppression would remove a group the analysis depends on, generalise that column further instead, or move the release to a more controlled route; Leader session 2 covers the routes.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Constructed Brightwater example</span>
+      <p><strong>Hana's partner wants 5-year age bands.</strong> One of the three university teams is fitting an earnings regression and says 10-year bands blur the age curve. Ravi tries it on the desk: age in 5-year bands, the other four columns as at rung 3, k of 5. Uniqueness before suppression rises from 0.57% to 1.07%, and suppression rises from 725 rows to 1,375 (4.22%). Precision goes up from 61% to 65%. Hana now has a real trade to put to the partner: finer ages for everyone, or 650 more real people missing from the file, most of them the rare ones.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Make every class at least k</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">Ravi's file is the rung 3 setting: five columns coarsened, nothing suppressed yet. Take it to k of 5, try the partner's request for finer ages, and then write the same thing in pandas so it can run in Brightwater's pipeline. The widget and the code below compute on the same 32,561 real rows and print the same numbers.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 264" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Five hand-drawn boxes in a row, the pipeline: generalise one level per column, group by the six generalised values, count rows in each class, suppress classes under k in plum, recount k achieved and rows dropped. A return arrow runs from the last box back to the first: too many suppressed, climb one more step and go round again.">
+        <defs>
+          <filter id="b2dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="41" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b2dHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b2dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b2dH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b2dL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b2dS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b2dW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b2dV { font: 400 11px Inter, sans-serif; fill: #FFFFFF; }
+          .b2dA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .b2dN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b2dH" x="30" y="28">GENERALISE, GROUP, COUNT, SUPPRESS, RECOUNT</text>
+
+        <g filter="url(#b2dSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="52" width="140" height="104" rx="12" transform="rotate(-1 100 104)" fill="url(#b2dHc)"/>
+          <rect x="204" y="52" width="140" height="104" rx="12" transform="rotate(0.8 274 104)" fill="#FFFFFF"/>
+          <rect x="378" y="52" width="140" height="104" rx="12" transform="rotate(-0.6 448 104)" fill="#FFFFFF"/>
+          <rect x="552" y="52" width="140" height="104" rx="12" transform="rotate(0.9 622 104)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="726" y="52" width="124" height="104" rx="12" transform="rotate(-0.8 788 104)" fill="#F7F6E4" stroke="#7A7600"/>
+          <path d="M174 104 L198 104" marker-end="url(#b2dAr)"/>
+          <path d="M348 104 L372 104" marker-end="url(#b2dAr)"/>
+          <path d="M522 104 L546 104" marker-end="url(#b2dAr)"/>
+          <path d="M696 104 L720 104" marker-end="url(#b2dAr)"/>
+          <path d="M788 164 L788 192 L100 192 L100 166" stroke="#57553F" stroke-dasharray="6 5" marker-end="url(#b2dAr)"/>
+          <!-- doodle: a tally of five strokes on the count box -->
+          <path d="M470 132 L470 146 M476 132 L476 146 M482 132 L482 146 M488 132 L488 146 M466 144 L494 134" stroke="#4A4700" stroke-width="1.6"/>
+        </g>
+
+        <rect x="40" y="64" width="120" height="58" rx="6" fill="#FFFFFF"/>
+
+        <text class="b2dL" x="46" y="82">1 · Generalise</text>
+        <text class="b2dS" x="46" y="100">one level</text>
+        <text class="b2dS" x="46" y="116">per column</text>
+        <text class="b2dL" x="220" y="82">2 · Group</text>
+        <text class="b2dS" x="220" y="100">by the six</text>
+        <text class="b2dS" x="220" y="116">coarsened values</text>
+        <text class="b2dL" x="394" y="82">3 · Count</text>
+        <text class="b2dS" x="394" y="100">rows in each</text>
+        <text class="b2dS" x="394" y="116">class</text>
+        <text class="b2dW" x="568" y="82">4 · Suppress</text>
+        <text class="b2dV" x="568" y="100">drop every class</text>
+        <text class="b2dV" x="568" y="116">smaller than k</text>
+        <text class="b2dL" x="740" y="82">5 · Recount</text>
+        <text class="b2dS" x="740" y="100">k achieved,</text>
+        <text class="b2dS" x="740" y="116">rows dropped</text>
+
+        <text class="b2dA" x="444" y="212" text-anchor="middle">too many suppressed? climb one more step and go round again</text>
+
+        <text class="b2dN" x="30" y="248">Step 4 makes k true by construction. Step 5 is the honest part: it says how many real people that took.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - suppression always reaches k; the recount tells you whether it was worth it</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Step 1 · Start at rung 3.</strong> The desk below opens on "Coarsen five columns". Read the unique share and k. The widget prints 0.57% unique (184 of 32,561 rows) and k achieved 1: generalisation has shrunk the problem, not solved it. The pandas code in step 4 shows the same setting has 872 classes.</p>
+        <div data-pe="desk" id="b2-desk" data-preset="p3"></div>
+        <div class="prompt-box good"><span class="label">★ Step 1 · read the start</span>setting:          rung 3, five columns coarsened, k 1
+unique rows:      ______ %   (widget prints 0.57%)
+k achieved:       ______     (widget prints 1)
+rows suppressed:  ______     (widget prints 0)</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 2 · Raise k to 5.</strong> Move the "Smallest class published (k)" slider to 5. Read rows suppressed and k achieved. The widget prints 725 rows suppressed (2.23%) and k achieved 5, with precision unchanged at 61%. Try 10 as well: 1,801 rows (5.53%).</p>
+        <div class="prompt-box good"><span class="label">★ Step 2 · k of 5</span>k asked:          5
+k achieved:       ______     (widget prints 5)
+rows suppressed:  ______     (widget prints 725, 2.23%)
+precision kept:   ______     (widget prints 61%)
+at k 10:          ______     (widget prints 1,801, 5.53%)</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 3 · Try the partner's 5-year bands.</strong> With k back on 5, change Age from "10-year band" to "5-year band". The widget prints 1.07% unique before suppression, 1,375 rows suppressed (4.22%), k achieved 5, and precision 65%. Finer ages for everyone cost 650 more people out of the file. Write the trade down in a form Hana can put to the partner.</p>
+        <div class="prompt-box good"><span class="label">★ Step 3 · the trade</span>10-year bands, k 5:   725 suppressed (2.23%), precision 61%
+5-year bands,  k 5:   ______ suppressed (_____%), precision ____%
+the question for the partner:
+  is the finer age curve worth ______ more real people missing,
+  most of them born outside the US?</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 4 · Write it in pandas.</strong> Download the public file (archive.ics.uci.edu, dataset 2, adult.zip), unzip it next to this script and run it. The mappings are the desk's hierarchies at rung 3. If your counts differ, a mapping is wrong: the usual slips are leaving Married-spouse-absent out of Married, or folding the "?" country into Outside US instead of Unknown.</p>
+        <div class="prompt-box good"><span class="label">★ Step 4 · pandas, generalise and suppress to k</span>import pandas as pd
+cols = ["age", "workclass", "fnlwgt", "education", "education_num", "marital", "occupation",
+        "relationship", "race", "sex", "capital_gain", "capital_loss", "hours", "country", "income"]
+df = pd.read_csv("adult.data", names=cols, skipinitialspace=True)
+
+no_diploma = ["Preschool", "1st-4th", "5th-6th", "7th-8th", "9th", "10th", "11th", "12th"]
+some_college = ["Some-college", "Assoc-voc", "Assoc-acdm"]
+postgrad = ["Masters", "Prof-school", "Doctorate"]
+edu5 = {**{e: "No high school diploma" for e in no_diploma}, "HS-grad": "High school",
+        **{e: "Some college or associate" for e in some_college}, "Bachelors": "Bachelors",
+        **{e: "Postgraduate" for e in postgrad}}
+married = ["Married-civ-spouse", "Married-spouse-absent", "Married-AF-spouse"]
+
+g = pd.DataFrame({
+    "age": (df.age // 10 * 10).astype(int),
+    "sex": df.sex,
+    "race": df.race.where(df.race == "White", "Not white"),
+    "marital": df.marital.map(lambda m: "Married" if m in married
+                              else "Never married" if m == "Never-married" else "Previously married"),
+    "education": df.education.map(edu5),
+    "country": df.country.map(lambda c: "United States" if c == "United-States"
+                              else "Unknown" if c == "?" else "Outside US"),
+})
+k = 5
+qi = list(g.columns)
+size = g.groupby(qi)["age"].transform("size")
+released = g[size &gt;= k]
+print("classes:", g.groupby(qi).ngroups)
+print("rows suppressed:", int((size &lt; k).sum()), f"({100 * (size &lt; k).mean():.2f}%)")
+print("k achieved:", released.groupby(qi).size().min())
+# classes: 872
+# rows suppressed: 725 (2.23%)
+# k achieved: 5</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 5 · Write the setting line for the release record.</strong> One line that someone else could re-run and get the same file. Every column, its level, k asked, k achieved, and the rows it took. Engineer session 3 adds l and t to this line; Engineer session 8 puts it in the full record.</p>
+        <div class="prompt-box good"><span class="label">★ Step 5 · the setting line</span>age ______ · sex ______ · race ______ · marital ______ · education ______
+country ______ · k asked __ · k achieved __ · suppressed ______ rows (____%)
+Brightwater: age 10-year · sex exact · race White / not white ·
+marital 3 groups · education 5 levels · country US / outside / unknown ·
+k asked 5 · k achieved 5 · suppressed 725 rows (2.23%) · precision 61%</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>Keep the code next to the hierarchy.</strong> The mapping dictionaries are the hierarchy. Commit them with the release, and the next person who reruns the extract gets the same classes instead of a fresh guess.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before Engineer session 3</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li><strong>Draw one hierarchy of your own.</strong> Take the column that did the most identifying in your Engineer session 1 climb and write its ladder from exact to removed, as a mapping table.</li>
+      <li><strong>Run your file at k of 3, 5 and 10.</strong> Record k achieved and rows suppressed at each, and note where the suppression jumps.</li>
+      <li><strong>Check who you suppressed.</strong> Pick one group your analysis depends on and compare its share of the suppressed rows with its share of the file, as Brightwater did for people born outside the US (68.1% against 10.4%).</li>
+      <li><strong>Bring your setting line.</strong> Engineer session 3 asks whether k of 5 still lets an outsider read the sensitive column, and adds l and t to the line.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Engineer session 2 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · Brightwater's release satisfies k-anonymity with k of 5 on six quasi-identifiers. What does that guarantee?</p>
+      <button class="qopt" type="button">A · Nobody in the file can be re-identified by any means</button>
+      <button class="qopt" type="button">B · Every column has at least 5 distinct values</button>
+      <button class="qopt" type="button">C · Every combination of the six quasi-identifier values appears at least 5 times, so each person matches at least 4 others on them</button>
+      <button class="qopt" type="button">D · An outsider cannot learn anyone's occupation</button>
+      <p class="qwhy">k is the size of the smallest class on the declared quasi-identifiers. It says nothing about undeclared columns or about the sensitive column.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">2 · Rung 5 and rung 6 both ask for k of 10. Why does rung 6 suppress 345 rows while rung 5 suppresses 1,801?</p>
+      <button class="qopt" type="button">A · Rung 6 climbs age to 20-year bands and education to degree yes or no, merging 872 classes into 227, so far fewer classes are below 10</button>
+      <button class="qopt" type="button">B · Rung 6 drops the sex column</button>
+      <button class="qopt" type="button">C · Rung 6 uses a smaller sample of the file</button>
+      <button class="qopt" type="button">D · Suppression is applied at random</button>
+      <p class="qwhy">More generalisation makes bigger classes, so fewer of them fall under k. The bill moves from people (rows suppressed) to detail (precision 61% down to 51%).</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">3 · Why is record suppression not a neutral step?</p>
+      <button class="qopt" type="button">A · It lowers k</button>
+      <button class="qopt" type="button">B · It changes the values in the rows that remain</button>
+      <button class="qopt" type="button">C · It only works on numeric columns</button>
+      <button class="qopt" type="button">D · Small classes are rare combinations, so it removes rare people first: at k of 5, 68.1% of suppressed rows were born outside the US against 10.4% of the file</button>
+      <p class="qwhy">Suppression is targeted by construction. Record what it removed and who it fell on, and tell the recipient.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The definition of k-anonymity: every quasi-identifier sequence appears at least k times; "cannot be distinguished from at least k-1 individuals"</span><span class="note">Sweeney 2002, "k-anonymity: a model for protecting privacy", IJUFKS 10(5) 557-570, Definition 3; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Industry threshold of 3 or 5, higher for external sharing; k counts indirect identifiers only; the worked example at k = 5</span><span class="note">PDPC, Guide to Basic Anonymisation (2022), p24, p25 and footnote 12; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Generalisation and record suppression as basic techniques</span><span class="note">PDPC, Guide to Basic Anonymisation (2022), Annex A; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Rungs 1 to 6: 8,553, 872 and 227 classes; unique 17.18, 7.18, 0.57, 0.09%; suppressed 725, 1,801 and 345; precision 100, 92, 61, 51%</span><span class="note">UCI Adult, Becker and Kohavi 1996, CC BY 4.0; computed by the engine and the reference script, which agree; pandas on this page reproduces rung 4</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">5-year bands at k 5: 1.07% unique, 1,375 suppressed (4.22%), precision 65%; who was suppressed at rung 4 (68.1% and 46.8%)</span><span class="note">Computed on the real rows with the same engine and pandas mappings</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Brightwater, Dr Hana Seow, Ravi Menon and the partner's request for 5-year bands</span><span class="note">Constructed and labelled</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Engineer session 2 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>k</b><span>The size of the smallest class on the declared quasi-identifiers. One lone row sets it to 1.</span></div>
+      <div class="cheat-item"><b>The threshold</b><span>PDPC: industry practice is 3 or 5, higher for external sharing. Argue upward from the environment.</span></div>
+      <div class="cheat-item"><b>Hierarchy</b><span>Exact to removed, each step merging. Write it down as a mapping table.</span></div>
+      <div class="cheat-item"><b>Suppression</b><span>Drop every class under k. Always reaches k; 725 real rows at k 5 on rung 3.</span></div>
+      <div class="cheat-item"><b>Two bills</b><span>Suppress more and lose people; generalise more and lose detail. Rung 6: 345 rows, 51% precision.</span></div>
+      <div class="cheat-item"><b>Who left</b><span>Suppression takes the rare first. Count who it fell on and tell the recipient.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>Every class now holds at least five people. Engineer session 3 asks what those five have in common: if they share an occupation, k of 5 hides nobody's job. l-diversity and t-closeness, computed on the same real rows.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Engineer session 2 of 8 · learn-privacy-engineering-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b1-finding-the-quasi-identifiers.html">← Prev: Finding the quasi-identifiers</a> &nbsp;·&nbsp; <a href="b3-when-k-is-not-enough.html">Next: When k is not enough →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/pe-data.js?v=1"></script>
+<script src="../assets/pe-engine.js?v=1"></script>
+<script src="../assets/pe-desk.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

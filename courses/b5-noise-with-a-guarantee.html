@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Engineer session 5 of 8. The definition of differential privacy, sensitivity, and the Laplace mechanism, run on real census counts: at epsilon 1 the mean error is 0.94 people per count, and a true count of 0 is released as -3.8.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Noise with a guarantee - learn privacy engineering with phoebe">
+<meta property="og:description" content="Engineer session 5 of 8. Differential privacy from the definition to a released table: sensitivity, Laplace noise, epsilon, and why small counts drown.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/courses/b5-noise-with-a-guarantee.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Noise with a guarantee - learn privacy engineering with phoebe">
+<meta name="twitter:description" content="Engineer session 5 of 8. The definition, sensitivity and the Laplace mechanism on 16 real census counts.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Engineer session 5 · Noise with a guarantee - learn privacy engineering with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=2">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-privacy-engineering-with-phoebe</a> / Engineer session 5 of 8</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Privacy Engineering with Phoebe · Engineer session 5 of 8</div>
+    <h1>Noise with a <span class="accent">guarantee</span></h1>
+    <p class="sub">Four sessions of k, l and t all ended the same way: the protection depends on which columns you declared and what the outsider happens to know. Differential privacy makes a different kind of promise. It is a property of the release process, it holds whatever the outsider knows, and its price is a number you choose. Tonight: the definition in plain words, sensitivity, the Laplace mechanism, and a noisy table of real census counts that you release yourself.</p>
+    <div class="chip-row">
+      <span class="chip level">🟠 Engineer</span>
+      <span class="chip audience">Data engineers and analysts who prepare a release</span>
+      <span class="chip audience">numpy or the in-page widget</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Definition, sensitivity, Laplace</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: release a noisy table</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where we start</h2>
+    </div>
+    <p class="lede">Brightwater's research director, Dr Hana Seow, has a new request from one of the three university partners: they do not want rows at all, only a table of how many people earn over 50K at each education level. Ravi Menon, the data engineer, could publish the true counts. But a count table can still give a person away: compare two tables, one with you and one without, and the difference is you. Tonight you replace "remove the risky rows" with "add calibrated noise", and you measure exactly what that costs. Brightwater and its people are constructed; the 32,561 rows from the UCI Adult extract of the 1994 US Census are real, and so is every count on this page.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">★ Build-along = everyone works it through</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> The definition of differential privacy in one sentence you can say to a DPO; the sensitivity of the query you want to release; a noisy table of 16 real counts released at an epsilon you chose, with its measured error; and the epsilon line that goes on the release record.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers the definition</span>
+      <h2>Two worlds, one person apart, nearly the same answers</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Picture two databases that are identical except for one person: in world A you are in the file, in world B you are not. Run the same release process on both. If the process is differentially private, the answers it can produce come out with almost the same probabilities in both worlds, so nobody looking at the output can tell which world they are in, and so cannot tell whether you are in the data. The word "almost" is made exact by one number, epsilon.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two databases on the left. World A holds all 32,561 rows including one person, you, drawn in plum. World B is the same file without you, 32,560 rows, with an empty dashed slot. Both feed the same mechanism box, count then add Laplace noise. On the right, two bell-like Laplace curves of possible released answers: the plum curve, with you, peaks one unit to the right of the dashed curve, without you. At every answer the two heights differ by at most a factor exp(epsilon); at the marked answer the ratio is 2.72, which is exp(1). Drawn to scale for epsilon 1.">
+        <defs>
+          <filter id="b5aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="29" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b5aHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b5aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b5aH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b5aL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b5aS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b5aB { font: 800 11px Inter, sans-serif; fill: #5C1A33; }
+          .b5aA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .b5aN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b5aH" x="30" y="28">THE SAME MECHANISM, RUN ON TWO FILES THAT DIFFER BY ONE PERSON</text>
+
+        <g filter="url(#b5aSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="56" width="210" height="100" rx="12" transform="rotate(-0.6 135 106)" fill="url(#b5aHc)"/>
+          <rect x="30" y="196" width="210" height="100" rx="12" transform="rotate(0.5 135 246)" fill="url(#b5aHc)"/>
+          <rect x="196" y="120" width="26" height="24" rx="4" transform="rotate(3 209 132)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="196" y="260" width="26" height="24" rx="4" transform="rotate(-2 209 272)" fill="#FFFFFF" stroke="#57553F" stroke-dasharray="4 4"/>
+          <rect x="300" y="130" width="160" height="90" rx="12" transform="rotate(0.8 380 175)" fill="#FFFFFF"/>
+          <path d="M244 110 L294 160" marker-end="url(#b5aAr)"/>
+          <path d="M244 244 L294 192" marker-end="url(#b5aAr)"/>
+          <path d="M464 175 L506 175" marker-end="url(#b5aAr)"/>
+          <path d="M520 300 L852 300" stroke="#57553F" stroke-width="1.4"/>
+          <path d="M520 295.5 L530 294.2 L540 292.5 L550 290.4 L560 287.7 L570 284.2 L580 279.7 L590 273.9 L600 266.5 L610 257.0 L620 244.8 L630 229.1 L640 209.0 L650 183.2 L660 150.0 L670 183.2 L680 209.0 L690 229.1 L700 244.8 L710 257.0 L720 266.5 L730 273.9 L740 279.7 L750 284.2 L760 287.7 L770 290.4 L780 292.5 L790 294.2 L800 295.5 L810 296.5 L820 297.3 L830 297.9 L840 298.3 L850 298.7" stroke="#4A4700" stroke-dasharray="6 5"/>
+          <path d="M520 298.3 L530 297.9 L540 297.3 L550 296.5 L560 295.5 L570 294.2 L580 292.5 L590 290.4 L600 287.7 L610 284.2 L620 279.7 L630 273.9 L640 266.5 L650 257.0 L660 244.8 L670 229.1 L680 209.0 L690 183.2 L700 150.0 L710 183.2 L720 209.0 L730 229.1 L740 244.8 L750 257.0 L760 266.5 L770 273.9 L780 279.7 L790 284.2 L800 287.7 L810 290.4 L820 292.5 L830 294.2 L840 295.5 L850 296.5" stroke="#8E2A4F" stroke-width="2.4"/>
+          <path d="M760 266.5 L760 287.7" stroke="#23220E" stroke-width="1.4"/>
+          <path d="M790 238 L766 262" stroke="#57553F" stroke-width="1.2"/>
+          <!-- doodle: a pair of scales tipping almost level above the mechanism -->
+          <path d="M350 112 L410 108 M380 110 L380 96 M350 112 L342 122 M350 112 L358 122 M410 108 L402 118 M410 108 L418 118" stroke="#4A4700"/>
+        </g>
+
+        <rect x="42" y="66" width="186" height="44" rx="6" fill="#FFFFFF"/>
+        <rect x="134" y="125" width="32" height="17" rx="4" fill="#FFFFFF"/>
+        <rect x="112" y="265" width="68" height="17" rx="4" fill="#FFFFFF"/>
+        <rect x="42" y="206" width="186" height="44" rx="6" fill="#FFFFFF"/>
+
+        <text class="b5aL" x="52" y="84">World A · 32,561 rows</text>
+        <text class="b5aS" x="52" y="101">the real file, you in it</text>
+        <text class="b5aB" x="140" y="137">you</text>
+        <text class="b5aL" x="52" y="224">World B · 32,560 rows</text>
+        <text class="b5aS" x="52" y="241">same file, without you</text>
+        <text class="b5aS" x="118" y="277">empty slot</text>
+
+        <text class="b5aH" x="316" y="160">MECHANISM M</text>
+        <text class="b5aS" x="316" y="180">count, then add</text>
+        <text class="b5aS" x="316" y="196">Laplace noise</text>
+
+        <text class="b5aS" x="560" y="142">without you</text>
+        <text class="b5aB" x="708" y="142">with you</text>
+        <text class="b5aL" x="774" y="222">ratio 2.72</text>
+        <text class="b5aS" x="774" y="236">is exp(1)</text>
+        <text class="b5aA" x="520" y="320">released answer, 1 person = 40px</text>
+
+        <text class="b5aN" x="30" y="344">At every possible answer the two curves differ by at most a factor exp(epsilon). Drawn to scale for epsilon 1.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - an outsider who sees the answer cannot tell which world produced it, so cannot tell whether you are in the file</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>The definition, in one sentence<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>The formal version.</strong> Dwork and Roth (2014), Definition 2.4: a mechanism M is (epsilon, delta)-differentially private if, for any two databases that differ in one person and any set S of outputs, the probability that M lands in S on one database is at most exp(epsilon) times the probability on the other, plus delta. With delta = 0, M is epsilon-differentially private, the version tonight uses.</p>
+        <p><strong>The sentence for a DPO.</strong> "Whatever is published, it would have been almost as likely to be published if any one person had not been in the data; epsilon says how close 'almost' is." Small epsilon means the two worlds are nearly indistinguishable and the answers are noisy. Large epsilon means the answers are sharp and the two worlds are easier to tell apart.</p>
+        <p><strong>Read the figure.</strong> The plum curve is the spread of answers the mechanism can give with you in the file, the dashed curve without you. They are shifted by exactly one person. At epsilon 1 their heights differ by a factor of at most exp(1), about 2.72, at every point on the axis.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>A property of the mechanism, not the file<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>k is about the file.</strong> In Engineer session 4 the linkage attack broke a k = 5 release the moment one undeclared column, workclass, was published exact: k still printed 5, and single matches went from 0 to 22. k is only as good as your guess about which columns an outsider can know.</p>
+        <p><strong>Epsilon is about the process.</strong> The definition says nothing about what the outsider knows. It compares the two worlds for every possible output, so it holds against an outsider who knows every other row in the file, a voter roll, a social media profile, or anything else. That is the guarantee in "noise with a guarantee", and it is why the definition is stated about M, never about the table M produced.</p>
+        <p><strong>What it does not promise.</strong> It bounds what the output reveals about whether one person took part. It does not stop the release from revealing true facts about groups: if the table shows that degree holders earn more, that is the point of the table, not a leak.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Where the idea came from<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>2006.</strong> Dwork, McSherry, Nissim and Smith published the calibrated-noise idea in Lecture Notes in Computer Science (2006, pp 265-284). Their own name for the guarantee is epsilon-indistinguishability, and they show that adding noise of scale sensitivity / epsilon achieves it. The name "differential privacy" and the definition used tonight are from Dwork and Roth's monograph, The Algorithmic Foundations of Differential Privacy (Foundations and Trends in Theoretical Computer Science, 2014).</p>
+        <p><strong>Where PDPC stands.</strong> Singapore's Guide to Basic Anonymisation (2022) mentions differential privacy in Annex C as one of the "alternative methods" that "have also emerged", with a one-sentence description in a footnote that names a privacy budget. It does not teach it; the techniques it does teach are k-anonymity based. Whether a differentially private release is still personal data under the PDPA is a legal question: <a href="https://phoebefu6.github.io/learn-pdpa-dnc-with-phoebe/">PDPA and DNC ↗</a> owns it.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The background knowledge nobody declared.</strong> When Netflix released movie ratings for its 500,000-subscriber Prize dataset, Narayanan and Shmatikov (2008) used public IMDb reviews as background knowledge and identified the Netflix records of known users; with 8 ratings and approximate dates, 99% of records could be uniquely identified. No anonymisation review had listed "IMDb reviews" as a quasi-identifier. A guarantee that holds whatever the outsider knows is the answer to exactly that failure.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers sensitivity</span>
+      <h2>Sensitivity: how far one person can move the answer</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">The noise has to hide one person, so its size depends on how much one person can change the answer. That amount is the sensitivity of the query. Get it right and the guarantee holds; get it wrong and the noise is too small for the one person who matters.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 334" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Left panel: a hand-drawn histogram of the 16 real counts of people earning over 50K by education level, from Preschool 0 through HS-grad 1,675 and Bachelors 2,221 to Doctorate 306. A zoom box over the 9th grade bar shows its 27 people with one plum block added on top: you, making 28. Adding or removing one person moves one bar by exactly 1, so the sensitivity of the count table is 1. Right panel, a constructed sketch: a sum of incomes, where one rich person can push the bar up without limit, unless each person's income is clipped at a cap C, which makes the sensitivity C.">
+        <defs>
+          <filter id="b5bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="31" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b5bHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b5bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b5bH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b5bL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b5bS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b5bB { font: 800 11px Inter, sans-serif; fill: #5C1A33; }
+          .b5bV { font: 800 16px Inter, sans-serif; fill: #4A4700; }
+          .b5bA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .b5bN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b5bH" x="30" y="28">ONE PERSON MOVES ONE COUNT BY EXACTLY 1</text>
+
+        <g filter="url(#b5bSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="52" width="550" height="244" rx="12" transform="rotate(-0.3 305 174)" fill="#FFFFFF"/>
+          <rect x="610" y="52" width="240" height="244" rx="12" transform="rotate(0.4 730 174)" fill="#FFFFFF"/>
+          <path d="M40 250 L570 250" stroke="#57553F" stroke-width="1.4"/>
+          <rect x="46" y="249" width="22" height="1" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="78" y="249" width="22" height="1" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="110" y="249" width="22" height="1" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="142" y="247" width="22" height="3" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="174" y="248" width="22" height="2" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="206" y="246" width="22" height="4" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="238" y="246" width="22" height="4" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="270" y="248" width="22" height="2" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="302" y="137" width="22" height="113" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="334" y="156" width="22" height="94" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="366" y="226" width="22" height="24" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="398" y="232" width="22" height="18" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="430" y="100" width="22" height="150" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="462" y="185" width="22" height="65" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="494" y="221" width="22" height="29" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="526" y="229" width="22" height="21" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="60" y="66" width="230" height="96" rx="10" transform="rotate(-0.8 175 114)" fill="#FFFFFF" stroke="#7A7600"/>
+          <rect x="80" y="112" width="30" height="40" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="80" y="98" width="30" height="12" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <path d="M185 166 L185 240" marker-end="url(#b5bAr)"/>
+          <path d="M630 260 L830 260" stroke="#57553F" stroke-width="1.4"/>
+          <rect x="644" y="214" width="36" height="46" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="700" y="116" width="36" height="144" fill="#FFFFFF" stroke="#8E2A4F" stroke-dasharray="6 5"/>
+          <path d="M718 116 L718 98" stroke="#8E2A4F" marker-end="url(#b5bAr)"/>
+          <path d="M630 184 L830 184" stroke="#4A4700" stroke-dasharray="3 5"/>
+          <!-- doodle: scissors at the cap line -->
+          <circle cx="818" cy="198" r="5" stroke="#4A4700"/>
+          <circle cx="830" cy="204" r="5" stroke="#4A4700"/>
+          <path d="M822 194 L838 184 M826 200 L840 190" stroke="#4A4700"/>
+        </g>
+
+        <text class="b5bH" x="76" y="86">ZOOM ON ONE BAR: 9th</text>
+        <text class="b5bB" x="120" y="108">+ you = 28</text>
+        <text class="b5bS" x="120" y="138">27 people over 50K</text>
+        <text class="b5bS" x="120" y="152">remove you: back to 27</text>
+
+        <text class="b5bV" x="296" y="130">1,675</text>
+        <text class="b5bV" x="424" y="93">2,221</text>
+
+        <text class="b5bL" x="40" y="268">Preschool</text>
+        <text class="b5bL" x="176" y="268">9th</text>
+        <text class="b5bL" x="296" y="268">HS-grad</text>
+        <text class="b5bL" x="420" y="268">Bachelors</text>
+        <text class="b5bA" x="40" y="286">16 education levels, Preschool to Doctorate · real counts</text>
+
+        <text class="b5bH" x="626" y="76">A SUM OF INCOMES</text>
+        <text class="b5bS" x="626" y="94">one rich person can move it</text>
+        <text class="b5bB" x="744" y="140">unbounded</text>
+        <text class="b5bS" x="744" y="176">clip at cap C</text>
+        <text class="b5bL" x="626" y="282">clipped: sensitivity is C</text>
+
+        <text class="b5bN" x="30" y="318">Counts are real, bars to scale. The sum panel is a constructed sketch; no incomes are drawn.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - a person sits in exactly one bar, so a count table has sensitivity 1; a sum has none until you clip it</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Sensitivity of a count, and of a sum<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>The definition.</strong> Dwork and Roth, Definition 3.1: the l1-sensitivity of a query is the largest change in its answer, summed over every output number, between any two databases that differ in one person. It is a property of the query, worked out before you look at the data.</p>
+        <p><strong>A count has sensitivity 1.</strong> Brightwater's query is the number of people over 50K at each of 16 education levels. Each person has exactly one education level, so adding or removing one person changes one of the 16 counts by 1 and leaves the other 15 alone. The whole table has sensitivity 1.</p>
+        <p><strong>A sum of incomes has no bound.</strong> UCI Adult has a capital gain column. If the partner asked for total capital gain by education level, one person with an enormous gain could move a total by any amount, so no finite noise hides them. The fix is clipping: before summing, cap every person's value at a limit C you set in advance (values above C count as C). Now one person moves a total by at most C, the sensitivity is C, and the noise can be sized to it. Clipping changes the answer for the people above the cap; that bias is the price, and it goes on the release record.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Who counts as "one person"<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The census extract has one row per person, so "differ in one person" and "differ in one row" are the same thing here. In event data they are not: a customer with 300 transactions is 300 rows. If the sensitivity is worked out per row, the guarantee protects one transaction, not the customer. Engineer session 6 takes this up as the unit of privacy; for tonight, check that one row is one person before you write "sensitivity 1".</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Constructed Brightwater example</span>
+      <p><strong>Ravi's second query.</strong> After the count table, the same partner asks for mean hours worked by education level. Hours worked per week has a natural upper limit he could use as the clip, but a mean also divides by a count that is itself private. He writes both down as open questions for the release record rather than guessing a sensitivity. The habit is the point: no sensitivity, no release.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers the Laplace mechanism</span>
+      <h2>Laplace noise, sized to sensitivity over epsilon</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">The recipe fits on one line. Draw noise from a Laplace distribution with scale b = sensitivity / epsilon, add it to the true answer, publish the sum. For Brightwater's count table the sensitivity is 1, so b = 1 / epsilon. The noise has the same size on every count, which is the whole story of what it costs: a count of 2,221 barely notices, a count of 0 is swamped.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 342" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Four columns, each a zoom window 16 people tall around one real count. Preschool, true 0. 1st-4th, true 6. HS-grad, true 1,675, axis broken. Bachelors, true 2,221, axis broken. In every column the same noise band, 3 b either side of the true value at epsilon 1, is drawn at the same width. In the Preschool column a plum dot marks the released value of the seeded draw, -3.8, below zero.">
+        <defs>
+          <filter id="b5cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="37" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b5cHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b5cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b5cH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b5cL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b5cS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b5cB { font: 800 11px Inter, sans-serif; fill: #5C1A33; }
+          .b5cA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .b5cN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b5cH" x="30" y="28">THE SAME NOISE BAND ON FOUR REAL COUNTS, EPSILON 1 (SCALE b = 1)</text>
+
+        <g filter="url(#b5cSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="52" width="190" height="236" rx="12" transform="rotate(-0.4 125 170)" fill="#FFFFFF"/>
+          <rect x="240" y="52" width="190" height="236" rx="12" transform="rotate(0.4 335 170)" fill="#FFFFFF"/>
+          <rect x="450" y="52" width="190" height="236" rx="12" transform="rotate(-0.3 545 170)" fill="#FFFFFF"/>
+          <rect x="660" y="52" width="190" height="236" rx="12" transform="rotate(0.5 755 170)" fill="#FFFFFF"/>
+
+          
+          
+          
+          
+
+          <path d="M50 170 L200 170" stroke="#57553F" stroke-width="1.4"/>
+          <path d="M260 218 L410 218" stroke="#57553F" stroke-width="1.4"/>
+          <rect x="315" y="170" width="40" height="48" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="525" y="170" width="40" height="66" fill="#7A7600" stroke="#7A7600"/>
+          <path d="M519 240 L531 236 L543 242 L555 236 L571 240" stroke="#57553F" stroke-width="1.4"/>
+          <rect x="525" y="246" width="40" height="20" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="735" y="170" width="40" height="66" fill="#7A7600" stroke="#7A7600"/>
+          <path d="M729 240 L741 236 L753 242 L765 236 L781 240" stroke="#57553F" stroke-width="1.4"/>
+          <rect x="735" y="246" width="40" height="20" fill="#7A7600" stroke="#7A7600"/>
+
+          <path d="M91 146 h68 v48 h-68 Z" stroke="#4A4700" stroke-width="1.4" stroke-dasharray="5 4"/>
+          <path d="M301 146 h68 v48 h-68 Z" stroke="#4A4700" stroke-width="1.4" stroke-dasharray="5 4"/>
+          <path d="M511 146 h68 v48 h-68 Z" stroke="#4A4700" stroke-width="1.4" stroke-dasharray="5 4"/>
+          <path d="M721 146 h68 v48 h-68 Z" stroke="#4A4700" stroke-width="1.4" stroke-dasharray="5 4"/>
+
+          <circle cx="125" cy="200" r="5" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <!-- doodle: a ruler under the Bachelors column, the same band width everywhere -->
+          <path d="M721 276 L789 276 M721 272 L721 280 M738 274 L738 278 M755 272 L755 280 M772 274 L772 278 M789 272 L789 280" stroke="#4A4700" stroke-width="1.4"/>
+        </g>
+
+        <text class="b5cL" x="46" y="76">Preschool · true 0</text>
+        <text class="b5cL" x="256" y="76">1st-4th · true 6</text>
+        <text class="b5cL" x="466" y="76">HS-grad · true 1,675</text>
+        <text class="b5cL" x="676" y="76">Bachelors · true 2,221</text>
+
+        <text class="b5cS" x="46" y="96">a true zero</text>
+        <text class="b5cS" x="256" y="96">a small count</text>
+        <text class="b5cS" x="466" y="96">a big count, axis broken</text>
+        <text class="b5cS" x="676" y="96">a big count, axis broken</text>
+
+        <text class="b5cA" x="40" y="166">0</text>
+        <text class="b5cA" x="250" y="214">0</text>
+        <text class="b5cS" x="166" y="140">band</text>
+        <text class="b5cB" x="46" y="232">released -3.8,</text>
+        <text class="b5cB" x="46" y="246">below zero</text>
+        <text class="b5cS" x="256" y="252">band is half</text>
+        <text class="b5cS" x="256" y="266">the count</text>
+        <text class="b5cS" x="466" y="282">band: a sliver</text>
+
+        <text class="b5cN" x="30" y="312">Each window is 16 people tall. Band drawn at 3 b either side of the true value, a drawing choice.</text>
+        <text class="b5cN" x="30" y="330">The plum dot is the seeded draw the widget prints for Preschool at epsilon 1.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the noise does not care how big the count is, so big counts barely move and small ones drown</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The mechanism and its numbers<span class="mini">4 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>The theorem.</strong> Dwork and Roth, Theorem 3.6: adding noise drawn from Lap(sensitivity / epsilon) to each output preserves (epsilon, 0)-differential privacy. The Laplace distribution with scale b is a sharp peak at zero with exponential tails; its variance is 2 b<sup>2</sup>, so its standard deviation is about 1.41 b. The 2006 paper loosely calls b itself the standard deviation; teach b as the scale.</p>
+        <p><strong>Brightwater's table, measured.</strong> The 16 true counts of over-50K earners, Preschool 0 through Doctorate 306, total 7,841. With the seeded draw the widget uses:</p>
+        <ul>
+          <li>Epsilon 1, b = 1: mean absolute error 0.94 people per count; Preschool released as -3.8.</li>
+          <li>Epsilon 0.1, b = 10: mean absolute error 9.42; Preschool released as -37.5.</li>
+          <li>Epsilon 2, b = 0.5: mean absolute error 0.47.</li>
+        </ul>
+        <p><strong>Same error, different damage.</strong> An error of about one person is nothing on Bachelors' 2,221 and a lot on 1st-4th's 6. At epsilon 0.1 the small counts are pure noise: a released -37.5 for a true 0 says nothing about Preschool at all. Before choosing epsilon, ask which counts the partner needs to be right; if they are the small ones, noise is the wrong tool, or the bins must be merged first.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Post-processing is free<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A released -3.8 people looks broken. Round it, clamp it at 0, make the counts whole numbers: none of this weakens the guarantee, because anything you compute from a differentially private output without going back to the data is just as private. This is a well-known property of differential privacy, and Dwork and Roth discuss it as post-processing. Two cautions. First, post-processing must not look at the true data: "clamp at 0 unless the true count is positive" leaks. Second, clamping changes the error: every negative becomes 0, which nudges small counts upward on average. Publish the table and say which post-processing you applied.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>A budget printed in a press release.</strong> For the 2020 Census redistricting data product, the US Census Bureau published "a total privacy-loss budget" of epsilon 19.61: 17.14 for the persons file and 2.47 for the housing unit data (press release CB21-CN.42, 9 June 2021). The release names the TopDown Algorithm; the Bureau's move to differential privacy for 2020 is widely reported. The figure covers the redistricting product only. Engineer session 6 picks up what it means to spend a budget like that across many tables.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Release a noisy table</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">Lim Su-Ann, Brightwater's data protection officer, will sign the count table off only if the release record says how much noise was added and why. Ravi has the true counts. Release them at three values of epsilon in the widget, check the guarantee survives tidying, reproduce the mechanism in numpy, and write the line Su-Ann needs.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 262" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Six hand-drawn boxes in a row joined by arrows: 1 query, count over 50K per education level, 16 bins; 2 bound, sensitivity, one person moves one count by 1; 3 choose epsilon, the only judgement, b = 1 / epsilon, drawn in plum; 4 add Laplace(0, b) noise to every count; 5 tidy, round and clamp at 0, free; 6 publish the table with its epsilon line on the record.">
+        <defs>
+          <filter id="b5dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="41" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b5dHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b5dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b5dH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b5dL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b5dS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b5dW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b5dV { font: 400 11px Inter, sans-serif; fill: #FFFFFF; }
+          .b5dN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b5dH" x="30" y="28">SIX BOXES FROM QUERY TO PUBLISHED TABLE</text>
+
+        <g filter="url(#b5dSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="56" width="124" height="118" rx="12" transform="rotate(-1 92 115)" fill="url(#b5dHc)"/>
+          <rect x="170" y="56" width="124" height="118" rx="12" transform="rotate(0.8 232 115)" fill="#FFFFFF"/>
+          <rect x="310" y="56" width="124" height="118" rx="12" transform="rotate(-0.6 372 115)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="450" y="56" width="124" height="118" rx="12" transform="rotate(0.9 512 115)" fill="#FFFFFF"/>
+          <rect x="590" y="56" width="124" height="118" rx="12" transform="rotate(-0.7 652 115)" fill="#FFFFFF"/>
+          <rect x="730" y="56" width="124" height="118" rx="12" transform="rotate(0.6 792 115)" fill="#F7F6E4" stroke="#7A7600"/>
+          <path d="M157 115 L167 115" marker-end="url(#b5dAr)"/>
+          <path d="M297 115 L307 115" marker-end="url(#b5dAr)"/>
+          <path d="M437 115 L447 115" marker-end="url(#b5dAr)"/>
+          <path d="M577 115 L587 115" marker-end="url(#b5dAr)"/>
+          <path d="M717 115 L727 115" marker-end="url(#b5dAr)"/>
+          <!-- doodle: a die under the noise box -->
+          <rect x="498" y="190" width="28" height="28" rx="5" transform="rotate(8 512 204)" stroke="#4A4700"/>
+          <circle cx="506" cy="198" r="1.6" stroke="#4A4700"/>
+          <circle cx="512" cy="204" r="1.6" stroke="#4A4700"/>
+          <circle cx="518" cy="210" r="1.6" stroke="#4A4700"/>
+        </g>
+
+        <rect x="38" y="66" width="108" height="80" rx="6" fill="#FFFFFF"/>
+
+        <text class="b5dL" x="44" y="84">1 · Query</text>
+        <text class="b5dS" x="44" y="104">count &gt;50K per</text>
+        <text class="b5dS" x="44" y="120">education level</text>
+        <text class="b5dS" x="44" y="136">16 bins</text>
+
+        <text class="b5dL" x="184" y="84">2 · Bound</text>
+        <text class="b5dS" x="184" y="104">sensitivity:</text>
+        <text class="b5dS" x="184" y="120">1 person moves</text>
+        <text class="b5dS" x="184" y="136">one count by 1</text>
+
+        <text class="b5dW" x="324" y="84">3 · Choose</text>
+        <text class="b5dV" x="324" y="104">epsilon, the</text>
+        <text class="b5dV" x="324" y="120">only judgement</text>
+        <text class="b5dV" x="324" y="136">b = 1 / epsilon</text>
+
+        <text class="b5dL" x="464" y="84">4 · Add noise</text>
+        <text class="b5dS" x="464" y="104">Laplace(0, b)</text>
+        <text class="b5dS" x="464" y="120">on every count</text>
+        <text class="b5dS" x="464" y="136">same size each</text>
+
+        <text class="b5dL" x="604" y="84">5 · Tidy</text>
+        <text class="b5dS" x="604" y="104">post-process:</text>
+        <text class="b5dS" x="604" y="120">round, clamp</text>
+        <text class="b5dS" x="604" y="136">at 0, free</text>
+
+        <text class="b5dL" x="744" y="84">6 · Publish</text>
+        <text class="b5dS" x="744" y="104">the table and</text>
+        <text class="b5dS" x="744" y="120">its epsilon</text>
+        <text class="b5dS" x="744" y="136">on the record</text>
+
+        <text class="b5dN" x="30" y="246">Box 3 is the only judgement in the pipeline; every other box is arithmetic anyone can check.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the sensitivity is worked out, the noise is drawn, the epsilon is chosen and defended</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Step 1 · Release at epsilon 1.</strong> The widget starts at a total epsilon of 1 spent on 1 query, so b = 1. Read the mean absolute error and the released Preschool count off the table. The widget prints a mean absolute error of 0.94 people per count and a Preschool count of -3.8.</p>
+        <div data-pe="dp" id="b5-dp"></div>
+        <div class="prompt-box good"><span class="label">★ Step 1 · epsilon 1</span>epsilon 1, scale b = 1
+mean absolute error:   0.94 people per count
+Preschool (true 0):    released -3.8
+Bachelors (true 2,221): ________  (read it off the widget)</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 2 · Slide to 0.1, then to 2.</strong> Leave queries at 1. Record the error at each. Ten times less epsilon means ten times the scale and ten times the error; twice the epsilon halves it.</p>
+        <div class="prompt-box good"><span class="label">★ Step 2 · three epsilons</span>epsilon   scale b   mean abs error   Preschool released
+0.1       10        9.42             -37.5
+1         1         0.94             -3.8
+2         0.5       0.47             ______
+Which counts are still usable at 0.1? _______________________</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 3 · Tick round and clamp.</strong> Back at epsilon 1, tick "Round and clamp at 0". Every negative count becomes 0 and every count becomes a whole number; Preschool now reads 0. Nothing about the guarantee changed, because the widget only transformed the noisy output and never went back to the true counts. Note that the error figure moves too: tidying changes accuracy, not privacy.</p>
+        <div class="prompt-box good"><span class="label">★ Step 3 · post-processing</span>before clamp:  Preschool -3.8
+after clamp:   Preschool 0
+privacy cost of clamping:  none (post-processing of a private output)
+what it changed:           ______________________________________</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 4 · The same mechanism in numpy.</strong> Run this on your own machine. It needs only numpy and the 16 true counts from Part 3, typed into the code below. The output below is pasted from a real run (numpy 1.26.4, seed 7). Its numbers differ from the widget's because the random generator differs; the scale b, and so the size of the error you should expect, is the same.</p>
+        <div class="prompt-box good"><span class="label">★ Step 4 · numpy, seeded</span>import numpy as np
+
+levels = ["Preschool", "1st-4th", "5th-6th", "7th-8th", "9th", "10th", "11th", "12th",
+          "HS-grad", "Some-college", "Assoc-voc", "Assoc-acdm", "Bachelors", "Masters",
+          "Prof-school", "Doctorate"]
+true = np.array([0, 6, 16, 40, 27, 62, 60, 33, 1675, 1387, 361, 265, 2221, 959, 423, 306])
+print("total", true.sum())
+for eps in (1.0, 0.1, 2.0):
+    noise = np.random.default_rng(7).laplace(0, 1 / eps, 16)
+    noisy = true + noise
+    mae = np.abs(noisy - true).mean()
+    print(f"epsilon {eps}: scale b {1 / eps:g}, MAE {mae:.2f}, "
+          f"Preschool {noisy[0]:.1f}, Bachelors {noisy[12]:.1f}")
+
+# output of a real run:
+# total 7841
+# epsilon 1.0: scale b 1, MAE 0.87, Preschool 0.3, Bachelors 2220.3
+# epsilon 0.1: scale b 10, MAE 8.69, Preschool 2.9, Bachelors 2214.3
+# epsilon 2.0: scale b 0.5, MAE 0.43, Preschool 0.1, Bachelors 2220.7</div>
+        <p>Read the pattern, not the digits. Each draw reuses seed 7, so the same underlying noise is stretched by 1 / epsilon: the epsilon 0.1 errors are exactly ten times the epsilon 1 errors. The widget's 0.94 and numpy's 0.87 are two draws at the same scale.</p>
+      </div>
+      <div class="step">
+        <p><strong>Step 5 · Write the epsilon line for the release record.</strong> Su-Ann signs this, so every field must be something she can check. Engineer session 6 adds the line for a budget spent over many queries.</p>
+        <div class="prompt-box good"><span class="label">★ Step 5 · the epsilon line</span>query:            count of &gt;50K earners per education level, 16 bins
+one person is:    one row (one census respondent)
+sensitivity:      1 (a person sits in exactly one bin)
+mechanism:        Laplace, scale b = sensitivity / epsilon = ______
+epsilon:          ______ for this release, 1 query
+post-processing:  round, clamp at 0
+measured error:   mean absolute error ______ people per count, this draw
+counts not usable at this epsilon:  ______________________________</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>Never re-roll the noise.</strong> If the first draw looks bad and you draw again, then publish the nicer one, you have answered the query twice and chosen with the true data in view. Draw once, publish what you drew, and record the seed policy.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before Engineer session 6</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li><strong>Find the sensitivity of three of your own queries.</strong> One count, one sum, one mean. For the sum, name the clip you would set and what it costs the people above it.</li>
+      <li><strong>Release one of your own count tables.</strong> Run the numpy code on a table you hold at epsilon 1 and 0.1 and mark which cells stay useful.</li>
+      <li><strong>Merge the drowning bins.</strong> In Brightwater's table, combine Preschool through 12th into one bin and note how the noise compares with the merged true count.</li>
+      <li><strong>Bring your epsilon line.</strong> Engineer session 6 asks what happens when the partner comes back with a second question, and a tenth.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Engineer session 5 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · What does epsilon bound in the definition of differential privacy?</p>
+      <button class="qopt" type="button">A · The number of rows suppressed from the release</button>
+      <button class="qopt" type="button">B · The smallest equivalence class in the file</button>
+      <button class="qopt" type="button">C · How much the probability of any output can change when one person is added or removed</button>
+      <button class="qopt" type="button">D · The share of the outsider's targets who can be singled out</button>
+      <p class="qwhy">The definition compares the two worlds, with and without one person: every output's probability can differ by at most a factor exp(epsilon). It is a statement about the mechanism, not about classes in a file.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">2 · What is the sensitivity of Brightwater's table of 16 counts of over-50K earners by education level?</p>
+      <button class="qopt" type="button">A · 1, because one person sits in exactly one bin and moves it by 1</button>
+      <button class="qopt" type="button">B · 16, one for each bin</button>
+      <button class="qopt" type="button">C · 7,841, the total</button>
+      <button class="qopt" type="button">D · It has no bound until the counts are clipped</button>
+      <p class="qwhy">Adding or removing one person changes one count by 1 and leaves the other 15 unchanged. Clipping is needed for sums of unbounded values, not for counts.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">3 · At epsilon 1 the mean error is 0.94 people per count. Why does that ruin the Preschool and 1st-4th counts but not Bachelors?</p>
+      <button class="qopt" type="button">A · Small counts get a larger noise scale</button>
+      <button class="qopt" type="button">B · Bachelors has a lower sensitivity</button>
+      <button class="qopt" type="button">C · Clamping at 0 adds error to the big counts only</button>
+      <button class="qopt" type="button">D · The noise is the same size on every count, so it is large relative to a small count and tiny relative to a big one</button>
+      <p class="qwhy">The Laplace scale depends only on sensitivity and epsilon, never on the true value. About one person of error is nothing on 2,221 and decisive on 0 or 6.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Definition of (epsilon, delta)- and epsilon-differential privacy; neighbouring databases differing in one person</span><span class="note">Dwork and Roth 2014, The Algorithmic Foundations of Differential Privacy, Definition 2.4; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">l1-sensitivity; the Laplace distribution, scale b, variance 2 b<sup>2</sup>; the Laplace mechanism with Lap(sensitivity / epsilon)</span><span class="note">Dwork and Roth 2014, Definitions 3.1 and 3.2, Theorem 3.6; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The 2006 origin: noise of scale sensitivity / epsilon gives epsilon-indistinguishability</span><span class="note">Dwork, McSherry, Nissim and Smith, Lecture Notes in Computer Science 2006, pp 265-284; author PDF read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Differential privacy named as an alternative method, outside the guide's scope</span><span class="note">PDPC, Guide to Basic Anonymisation (2022), Annex C and footnote 21; read at source</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Post-processing cannot weaken the guarantee</span><span class="note">A well-known property of differential privacy, discussed in Dwork and Roth 2014; taught as such</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">16 true counts, total 7,841; mean absolute error 0.94, 9.42 and 0.47 at epsilon 1, 0.1 and 2; Preschool -3.8 and -37.5</span><span class="note">UCI Adult, Becker and Kohavi 1996, CC BY 4.0; computed by the engine with a fixed seed; the numpy output on this page is a separate real run</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">2020 Census redistricting product: privacy-loss budget 19.61 = 17.14 + 2.47</span><span class="note">US Census Bureau press release CB21-CN.42, 9 June 2021; the move to differential privacy is reported, not quoted from it</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Netflix Prize re-identification with IMDb as background knowledge</span><span class="note">Narayanan and Shmatikov, IEEE Symposium on Security and Privacy 2008; arXiv text read at source, venue from Crossref</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Brightwater, Dr Hana Seow, Ravi Menon, Lim Su-Ann and the count-table request</span><span class="note">Constructed and labelled</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Engineer session 5 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>The definition</b><span>Add or remove one person: every output's probability moves by at most a factor exp(epsilon).</span></div>
+      <div class="cheat-item"><b>Mechanism, not file</b><span>The guarantee holds whatever the outsider knows. k never could.</span></div>
+      <div class="cheat-item"><b>Sensitivity</b><span>How far one person can move the answer. A count table: 1. A sum: clip first.</span></div>
+      <div class="cheat-item"><b>Laplace</b><span>Add Lap(sensitivity / epsilon). For counts, b = 1 / epsilon; standard deviation about 1.41 b.</span></div>
+      <div class="cheat-item"><b>Same noise everywhere</b><span>Epsilon 1: error 0.94 per count. Fine on 2,221, fatal on 0. Merge small bins first.</span></div>
+      <div class="cheat-item"><b>Tidy for free</b><span>Round and clamp at 0 cost no privacy. Never re-roll and pick.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>You can release one noisy table and defend its epsilon. Engineer session 6 asks what happens when the partner keeps asking: how epsilons add up across queries, why ten questions at a total of 1 are as noisy as one question at 0.1, and what a published budget like the Census Bureau's does and does not tell you.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Engineer session 5 of 8 · learn-privacy-engineering-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b4-the-linkage-attack.html">← Prev: The linkage attack</a> &nbsp;·&nbsp; <a href="b6-spending-a-privacy-budget.html">Next: Spending a privacy budget →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/pe-data.js?v=1"></script>
+<script src="../assets/pe-engine.js?v=1"></script>
+<script src="../assets/pe-desk.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

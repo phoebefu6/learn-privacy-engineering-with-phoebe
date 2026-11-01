@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Leader session 2 of 4. The second half of PDPC's test: where the data lands. Public, named-partner and enclave routes, the controls a recipient can be bound by, the motivated intruder, and a risk register for three routes measured on 32,561 real census rows.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="The release environment - learn privacy engineering with phoebe">
+<meta property="og:description" content="Leader session 2 of 4. The same file can be anonymised for one route and not another. Routes, recipient controls and the realistic intruder.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/courses/a2-the-release-environment.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The release environment - learn privacy engineering with phoebe">
+<meta name="twitter:description" content="Leader session 2 of 4. Risk is data plus environment: three routes, four walls around a recipient, and the intruder each route must withstand.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Leader session 2 · The release environment - learn privacy engineering with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=2">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-privacy-engineering-with-phoebe</a> / Leader session 2 of 4</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Privacy Engineering with Phoebe · Leader session 2 of 4</div>
+    <h1>The release <span class="accent">environment</span></h1>
+    <p class="sub">"Is this file anonymised?" has no answer until you say where it is going. Tonight: the second half of PDPC's test, the environment the data lands in. The same Brightwater extract posted as open data, handed to three named partner teams under an agreement, or kept in an enclave where only results leave; the controls that bind a recipient and the one attack each control blocks; and the realistic intruder each route has to withstand.</p>
+    <div class="chip-row">
+      <span class="chip level">🟢 Leader</span>
+      <span class="chip audience">DPOs, heads of data and product leads who approve a release</span>
+      <span class="chip audience">No code</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Routes, walls, intruders</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: the risk register</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where we start</h2>
+    </div>
+    <p class="lede">Leader session 1 ended with a number: on six ordinary columns, 17.18% of Brightwater's real rows are alone. That number describes the data. PDPC's test has a second limb, and it is the one most release reviews skip: what the recipient has or is likely to have access to, and the measures and safeguards around the file. Tonight Dr Hana Seow, Brightwater's research director, is weighing three ways to get the extract to her three university partners. Lim Su-Ann, the DPO, has to say which ones are safe, at what setting, and under which controls. Brightwater and its people are constructed; the 32,561 rows from the UCI Adult extract of the 1994 US Census are real.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">★ Build-along = everyone works it through</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> A one-page risk register for three release routes: who can see the file on each, what they can bring to it, the controls that bind them, the k you would set and why, and the remaining risk measured on the real rows. It is the page Lim Su-Ann puts in front of Hana before anything leaves the building.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers the second limb: risk = data + environment</span>
+      <h2>The same file, three different risks</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">PDPC's guidelines (Selected Topics, para 3.4) weigh two things together: the data, alone or combined with other information the recipient has or is likely to have access to, and the measures and safeguards, or the lack of them. Para 3.6 lists the factors: the amount of alteration the data has been subjected to, the extent of disclosure, the availability of other relevant information, and the recipients' ability and motivation to re-identify. Only the first factor lives in the file. The other three are set by the route you choose.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 396" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="One Brightwater extract at the top, with three arrows down to three routes. Route 1, public open data: anyone can download it forever, the outsider can bring every other public source, no agreement binds them. Route 2, named partners: three teams under one agreement, the outsider brings what a team member knows, bound not to re-identify or share. Route 3, enclave: researchers run queries inside, nobody outside sees rows, only what the results reveal can leave, and outputs are checked before release. On each route the strip showing what the outsider can bring is drawn in plum.">
+        <defs>
+          <filter id="a2aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="29" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a2aHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="a2aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a2aH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .a2aL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .a2aS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .a2aW { font: 800 11px Inter, sans-serif; fill: #FFFFFF; }
+          .a2aV { font: 600 12px Inter, sans-serif; fill: #FFFFFF; }
+          .a2aN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="a2aH" x="30" y="28">ONE FILE, THREE ROUTES, THREE DIFFERENT OUTSIDERS</text>
+
+        <g filter="url(#a2aSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="320" y="46" width="240" height="64" rx="10" transform="rotate(-0.6 440 78)" fill="url(#a2aHc)"/>
+          <path d="M380 112 L176 152" marker-end="url(#a2aAr)"/>
+          <path d="M440 112 L440 152" marker-end="url(#a2aAr)"/>
+          <path d="M500 112 L704 152" marker-end="url(#a2aAr)"/>
+          <rect x="30" y="156" width="260" height="180" rx="12" transform="rotate(-0.7 160 246)" fill="#FFFFFF"/>
+          <rect x="310" y="156" width="260" height="180" rx="12" transform="rotate(0.5 440 246)" fill="#FFFFFF"/>
+          <rect x="590" y="156" width="260" height="180" rx="12" transform="rotate(-0.5 720 246)" fill="#F7F6E4"/>
+          <rect x="42" y="236" width="236" height="56" rx="8" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="322" y="236" width="236" height="56" rx="8" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="602" y="236" width="236" height="56" rx="8" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <!-- doodle: a padlock on the enclave -->
+          <rect x="820" y="304" width="18" height="14" rx="2" stroke="#4A4700"/>
+          <path d="M823 304 Q829 292 835 304" stroke="#4A4700"/>
+        </g>
+
+        <rect x="332" y="56" width="216" height="44" rx="6" fill="#FFFFFF"/>
+        <text class="a2aH" x="344" y="74">ONE BRIGHTWATER EXTRACT</text>
+        <text class="a2aS" x="344" y="92">same rows, same columns</text>
+
+        <text class="a2aH" x="46" y="180">1 · PUBLIC OPEN DATA</text>
+        <text class="a2aS" x="46" y="198">anyone can download it, forever</text>
+        <text class="a2aL" x="46" y="220">who sees it: anyone</text>
+        <text class="a2aW" x="54" y="256">THE OUTSIDER CAN BRING</text>
+        <text class="a2aV" x="54" y="276">every other public source</text>
+        <text class="a2aS" x="46" y="316">no agreement binds them</text>
+
+        <text class="a2aH" x="326" y="180">2 · NAMED PARTNERS</text>
+        <text class="a2aS" x="326" y="198">three teams under one agreement</text>
+        <text class="a2aL" x="326" y="220">who sees it: named people</text>
+        <text class="a2aW" x="334" y="256">THE OUTSIDER CAN BRING</text>
+        <text class="a2aV" x="334" y="276">what a team member knows</text>
+        <text class="a2aS" x="326" y="316">bound not to re-identify or share</text>
+
+        <text class="a2aH" x="606" y="180">3 · ENCLAVE</text>
+        <text class="a2aS" x="606" y="198">researchers run queries inside</text>
+        <text class="a2aL" x="606" y="220">who sees rows: nobody outside</text>
+        <text class="a2aW" x="614" y="256">THE OUTSIDER CAN BRING</text>
+        <text class="a2aV" x="614" y="276">only what results reveal</text>
+        <text class="a2aS" x="606" y="316">outputs checked before release</text>
+
+        <text class="a2aN" x="30" y="364">Same rows on all three routes. What changes is who can look, and what they arrive with.</text>
+        <text class="a2aN" x="30" y="382">Factors from PDPC Selected Topics para 3.6. The three routes are Brightwater's options, constructed.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the file never changed; the plum strip did</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What each route changes<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Public open data.</strong> Extent of disclosure is total and permanent: once posted, it cannot be recalled. The other information an outsider can bring is everything public, including releases nobody has made yet. Ability and motivation are unknown, so you must assume the worst reasonable case. Only the data limb is left for you to work with, and it has to carry the whole load.</p>
+        <p><strong>Named partners under an agreement.</strong> Disclosure is limited to people you can list. What they can bring is what a researcher on those teams plausibly knows. Their motivation to re-identify is lowered by the agreement they signed: PDPC's para 3.34 notes motivation may be low where there are legal barriers such as contractual obligations. Both limbs now share the load.</p>
+        <p><strong>An enclave.</strong> Researchers come to the data, run queries inside a controlled environment, and only results leave. Nobody outside ever holds a row, so the file's risk moves to its outputs: every table or model that leaves has to be checked for small counts and single people before it goes. The environment does most of the work.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Anonymised is a state you keep, not a stamp<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Para 3.5 of the guidelines says anonymised data is no longer considered personal data, and in the same breath that the effectiveness of anonymisation may degrade over time, so it should be reviewed periodically. Para 3.6 adds that it must be reassessed when the data is combined with other information. The environment is what degrades: a new public dataset appears, a partner team grows, a copy turns up somewhere it should not be. A route that was safe at sign-off needs a review date, and Leader session 4 writes that date into the sign-off memo.</p>
+        <p>Whether a given file is personal data in law is a legal question; it belongs to <a href="https://phoebefu6.github.io/learn-pdpa-dnc-with-phoebe/">PDPA and DNC ↗</a>. This session measures the risk and designs the environment.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>The Netflix Prize was a public route.</strong> Netflix released movie ratings from about 500,000 subscribers with names replaced by numbers, open to anyone entering the competition. Narayanan and Shmatikov brought one thing the release never considered, public IMDb reviews, and identified the records of known users. Nothing in the file changed between the release and the attack. The environment had already decided the outcome: a public route lets any outsider bring any public source.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers recipient controls</span>
+      <h2>Controls that bind the recipient</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Once you know who receives the file, you can build walls around them. PDPC's para 3.7(c) lists them: limit the number of recipients, restrict use and subsequent disclosure, require recipients to run processes for proper use, and destroy the data when it is no longer needed. Para 3.23 adds contractual safeguards or an undertaking not to re-identify. Each wall stops a different thing going wrong, and none of them makes the rows themselves any safer.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 396" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A recipient boundary on the right holds the extract shared with three partner teams. Its left edge is drawn as four plum walls. Four things that could go wrong come in from the left, each with an arrow to the wall that blocks it. The file reaching more people is blocked by limiting recipients, para 3.7(c). A partner passing a copy on is blocked by no onward disclosure, para 3.7(c). Someone matching rows to a roll or a profile is blocked by an undertaking not to re-identify, para 3.23. An old copy outliving the work is blocked by destroying it when done, para 3.7(c). Inside, a note says the walls deter and give a remedy but do not make the rows safer, and that PDPC states unauthorised re-identification is an offence under Part 9B, para 3.18.">
+        <defs>
+          <filter id="a2bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="31" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a2bHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="a2bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a2bH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .a2bL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .a2bS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .a2bB { font: 800 11px Inter, sans-serif; fill: #5C1A33; }
+          .a2bA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .a2bN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="a2bH" x="30" y="28">FOUR WALLS AROUND ONE RECIPIENT, AND WHAT EACH ONE STOPS</text>
+        <text class="a2bA" x="30" y="56">WHAT COULD GO WRONG</text>
+        <text class="a2bA" x="330" y="56">THE WALL, PDPC PARA</text>
+
+        <g filter="url(#a2bSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="72" width="250" height="56" rx="10" transform="rotate(-1 155 100)" fill="#FFFFFF"/>
+          <rect x="30" y="144" width="250" height="56" rx="10" transform="rotate(0.8 155 172)" fill="#FFFFFF"/>
+          <rect x="30" y="216" width="250" height="56" rx="10" transform="rotate(-0.7 155 244)" fill="#FFFFFF"/>
+          <rect x="30" y="288" width="250" height="56" rx="10" transform="rotate(0.9 155 316)" fill="#FFFFFF"/>
+          <path d="M286 100 L324 100" marker-end="url(#a2bAr)"/>
+          <path d="M286 172 L324 172" marker-end="url(#a2bAr)"/>
+          <path d="M286 244 L324 244" marker-end="url(#a2bAr)"/>
+          <path d="M286 316 L324 316" marker-end="url(#a2bAr)"/>
+          <rect x="330" y="72" width="210" height="56" rx="8" transform="rotate(0.6 435 100)" fill="#FBEEF3" stroke="#8E2A4F"/>
+          <rect x="330" y="144" width="210" height="56" rx="8" transform="rotate(-0.6 435 172)" fill="#FBEEF3" stroke="#8E2A4F"/>
+          <rect x="330" y="216" width="210" height="56" rx="8" transform="rotate(0.5 435 244)" fill="#FBEEF3" stroke="#8E2A4F"/>
+          <rect x="330" y="288" width="210" height="56" rx="8" transform="rotate(-0.5 435 316)" fill="#FBEEF3" stroke="#8E2A4F"/>
+          <rect x="556" y="64" width="294" height="292" rx="12" transform="rotate(0.3 703 210)" fill="#FFFFFF"/>
+          <path d="M556 74 L556 128" stroke="#8E2A4F" stroke-width="6"/>
+          <path d="M556 146 L556 200" stroke="#8E2A4F" stroke-width="6"/>
+          <path d="M556 218 L556 272" stroke="#8E2A4F" stroke-width="6"/>
+          <path d="M556 290 L556 344" stroke="#8E2A4F" stroke-width="6"/>
+          <path d="M546 100 L566 100 M546 172 L566 172 M546 244 L566 244 M546 316 L566 316" stroke="#8E2A4F"/>
+          <rect x="600" y="96" width="210" height="96" rx="10" transform="rotate(-0.8 705 144)" fill="url(#a2bHc)"/>
+          <!-- doodle: brickwork in the corner of the boundary -->
+          <path d="M812 74 L842 74 M812 82 L842 82 M812 90 L842 90 M822 74 L822 82 M834 82 L834 90" stroke="#4A4700" stroke-width="1.5"/>
+        </g>
+
+        <rect x="612" y="108" width="186" height="72" rx="6" fill="#FFFFFF"/>
+
+        <text class="a2bL" x="44" y="96">the file reaches more people</text>
+        <text class="a2bS" x="44" y="114">every extra reader adds risk</text>
+        <text class="a2bL" x="44" y="168">a partner passes a copy on</text>
+        <text class="a2bS" x="44" y="186">a fourth team, a student's laptop</text>
+        <text class="a2bL" x="44" y="240">someone tries to match rows</text>
+        <text class="a2bS" x="44" y="258">to a roll, a profile, a colleague</text>
+        <text class="a2bL" x="44" y="312">an old copy outlives the work</text>
+        <text class="a2bS" x="44" y="330">found on a drive years later</text>
+
+        <text class="a2bB" x="342" y="96">LIMIT RECIPIENTS</text>
+        <text class="a2bS" x="342" y="114">3.7(c): name every reader</text>
+        <text class="a2bB" x="342" y="168">NO ONWARD DISCLOSURE</text>
+        <text class="a2bS" x="342" y="186">3.7(c): use and sharing</text>
+        <text class="a2bB" x="342" y="240">NO RE-IDENTIFYING</text>
+        <text class="a2bS" x="342" y="258">3.23: a signed undertaking</text>
+        <text class="a2bB" x="342" y="312">DESTROY WHEN DONE</text>
+        <text class="a2bS" x="342" y="330">3.7(c): destroy, proper use</text>
+
+        <text class="a2bH" x="624" y="130">THE EXTRACT</text>
+        <text class="a2bS" x="624" y="150">with three partner teams</text>
+        <text class="a2bS" x="624" y="168">constructed Brightwater</text>
+
+        <text class="a2bS" x="576" y="232">the walls deter, and give a remedy</text>
+        <text class="a2bS" x="576" y="250">if someone breaks them; they do not</text>
+        <text class="a2bS" x="576" y="268">make the rows themselves any safer</text>
+        <text class="a2bB" x="576" y="302">3.18: re-identifying is an offence</text>
+        <text class="a2bS" x="576" y="320">under Part 9B, as PDPC states it</text>
+
+        <text class="a2bN" x="30" y="380">Contracts bind people, not rows: each wall holds only while the recipient is who you think it is.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - name the wall for each thing that could go wrong, then check the agreement actually builds it</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>The walls, in the guideline's own order<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Limit and name the recipients (para 3.7(c)).</strong> "Three university teams" is not a list. A list has names, and a rule for adding one. Every extra reader is one more person who might know something about someone in the file.</p>
+        <p><strong>Restrict use and subsequent disclosure (para 3.7(c)).</strong> The wall that stops the file travelling: the extract may be used only for the stated study and may not be passed to anyone outside the list. Without it, a careful release to three teams becomes an uncontrolled release to whoever they trust.</p>
+        <p><strong>Proper-use processes and destruction (para 3.7(c)).</strong> Recipients must run processes that keep the data used as agreed, and destroy it when it is no longer needed. A copy that outlives the project is a copy nobody is watching.</p>
+        <p><strong>No re-identification (paras 3.18 and 3.23).</strong> Para 3.18 says organisations will still need contractual safeguards against re-identification even where the recipient sits outside the PDPA. Para 3.23 names the form: contractual safeguards, or an undertaking not to re-identify. Para 3.42 gives contract examples worth reading before you draft your own.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>What a public route can still bind<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Open data has no recipient list, so most of the walls fall away. Para 3.12 asks organisations releasing open data to consider legal safeguards, for example prohibiting unauthorised intentional re-identification in the terms of use. A licence term is the only wall left, and nobody signs it in front of you. That is why a public route leans almost entirely on the data limb.</p>
+        <p>The guidelines also state that the unauthorised re-identification of anonymised information is an offence under Part 9B of the PDPA (para 3.18). Treat that as the guideline's statement; what the Act provides, and when it applies, is covered in <a href="https://phoebefu6.github.io/learn-pdpa-dnc-with-phoebe/">PDPA and DNC ↗</a>. An offence deters a careful researcher; it does not deter someone who never expects to be traced.</p>
+        <p>For a published count table, the small-cell rule that keeps single people out of the cells is taught in <a href="https://phoebefu6.github.io/learn-smart-city-with-phoebe/">Smart City ↗</a>. For who may query what inside your own walls, see <a href="https://phoebefu6.github.io/learn-data-access-control-with-phoebe/">Data Access Control ↗</a>.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Brightwater's draft clause 7.</strong> Lim Su-Ann's first draft of the partner agreement reads: "The Recipient shall use the Extract only for the Approved Study; shall not disclose it, or any part of it, to any person not named in Schedule A; shall not attempt to re-identify any individual, or link the Extract with any other information for that purpose; and shall destroy all copies within 30 days of the end of the Approved Study and confirm destruction in writing." Four walls in one clause, each matched to a paragraph of the guidelines. Constructed Brightwater example; the 30 days is her choice, not a standard.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers the realistic intruder</span>
+      <h2>Who is the realistic intruder?</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Walls are tested by someone trying to get past them. PDPC calls running a motivated intruder test good practice (para 3.11), and paras 3.36 to 3.38 describe the intruder, adapted from the UK ICO's code: motivated, reasonably competent, with the internet and public directories, not targeting any particular individual, and with no criminal methods or specialist equipment. Para 3.38(a) asks you to count the technical, legal, regulatory and organisational controls in place. The question for each route is which intruders it must withstand on the data alone.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A grid of three intruders against three routes. A curious student, who knows a classmate's facts but has little time or money: the public route and the named-partner route must withstand them, the enclave keeps them out because they see only checked results. A reporter, in plum, motivated and competent with the internet and public records: the public route must withstand them, the named-partner route keeps them out with its walls unless a copy leaks, the enclave keeps them out. A data broker holding big bought files who may ignore a contract: the public route must withstand them, the named-partner route keeps them out by banning onward sharing, the enclave has no rows for them to join. The reporter row matches the intruder PDPC's test assumes.">
+        <defs>
+          <filter id="a2cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="37" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a2cHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="a2cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a2cH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .a2cL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .a2cS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .a2cA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .a2cW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .a2cY { font: 400 11px Inter, sans-serif; fill: #FFFFFF; }
+          .a2cN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="a2cH" x="30" y="28">THREE INTRUDERS AGAINST THREE ROUTES: WHO MUST THE DATA ITSELF WITHSTAND?</text>
+        <text class="a2cA" x="274" y="58">PUBLIC OPEN DATA</text>
+        <text class="a2cA" x="474" y="58">NAMED PARTNERS</text>
+        <text class="a2cA" x="674" y="58">ENCLAVE</text>
+
+        <g filter="url(#a2cSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="72" width="210" height="70" rx="10" transform="rotate(-0.8 135 107)" fill="#FFFFFF"/>
+          <rect x="30" y="152" width="210" height="70" rx="10" transform="rotate(0.6 135 187)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="30" y="232" width="210" height="70" rx="10" transform="rotate(-0.6 135 267)" fill="#FFFFFF"/>
+
+          <rect x="260" y="72" width="190" height="70" rx="8" transform="rotate(0.4 355 107)" fill="#F7F6E4"/>
+          <rect x="460" y="72" width="190" height="70" rx="8" transform="rotate(-0.4 555 107)" fill="#F7F6E4"/>
+          <rect x="660" y="72" width="190" height="70" rx="8" transform="rotate(0.4 755 107)" fill="#FFFFFF"/>
+
+          <rect x="260" y="152" width="190" height="70" rx="8" transform="rotate(-0.4 355 187)" fill="#F7F6E4"/>
+          <rect x="460" y="152" width="190" height="70" rx="8" transform="rotate(0.4 555 187)" fill="#FFFFFF"/>
+          <rect x="660" y="152" width="190" height="70" rx="8" transform="rotate(-0.4 755 187)" fill="#FFFFFF"/>
+
+          <rect x="260" y="232" width="190" height="70" rx="8" transform="rotate(0.4 355 267)" fill="#F7F6E4"/>
+          <rect x="460" y="232" width="190" height="70" rx="8" transform="rotate(-0.4 555 267)" fill="#FFFFFF"/>
+          <rect x="660" y="232" width="190" height="70" rx="8" transform="rotate(0.4 755 267)" fill="#FFFFFF"/>
+          <!-- doodle: a magnifying glass by the title -->
+          <circle cx="842" cy="22" r="8" stroke="#4A4700"/>
+          <path d="M848 28 L856 36" stroke="#4A4700"/>
+        </g>
+
+        <text class="a2cH" x="44" y="98">A CURIOUS STUDENT</text>
+        <text class="a2cS" x="44" y="116">knows a classmate's facts</text>
+        <text class="a2cS" x="44" y="132">little time or money</text>
+        <text class="a2cW" x="44" y="178">A REPORTER</text>
+        <text class="a2cY" x="44" y="196">motivated, competent</text>
+        <text class="a2cY" x="44" y="212">internet, public records</text>
+        <text class="a2cH" x="44" y="258">A DATA BROKER</text>
+        <text class="a2cS" x="44" y="276">holds big bought files</text>
+        <text class="a2cS" x="44" y="292">may ignore a contract</text>
+
+        <text class="a2cL" x="274" y="100">must withstand</text>
+        <text class="a2cS" x="274" y="118">one click from anyone</text>
+        <text class="a2cL" x="474" y="100">must withstand</text>
+        <text class="a2cS" x="474" y="118">may sit on a partner team</text>
+        <text class="a2cL" x="674" y="100">kept out</text>
+        <text class="a2cS" x="674" y="118">sees only checked results</text>
+
+        <text class="a2cL" x="274" y="180">must withstand</text>
+        <text class="a2cS" x="274" y="198">time, motive, public data</text>
+        <text class="a2cL" x="474" y="180">kept out by the walls</text>
+        <text class="a2cS" x="474" y="198">unless a copy leaks</text>
+        <text class="a2cL" x="674" y="180">kept out</text>
+        <text class="a2cS" x="674" y="198">sees only checked results</text>
+
+        <text class="a2cL" x="274" y="260">must withstand</text>
+        <text class="a2cS" x="274" y="278">joins big bought files</text>
+        <text class="a2cL" x="474" y="260">kept out by the walls</text>
+        <text class="a2cS" x="474" y="278">no onward sharing</text>
+        <text class="a2cL" x="674" y="260">kept out</text>
+        <text class="a2cS" x="674" y="278">has no rows to join</text>
+
+        <text class="a2cN" x="30" y="326">Constructed judgement for Brightwater. The plum row matches PDPC's test intruder, paras 3.36 to 3.38:</text>
+        <text class="a2cN" x="30" y="344">motivated, reasonably competent, public sources, no criminality, no specialist equipment.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the tinted cells are where the data limb carries the whole load</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Setting k for the route<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>PDPC's numbers.</strong> Para 3.9 sets a minimum k-anonymity value of 5 for sharing with external parties, and a lower minimum of 3 for internal sharing with controls. Other methods are acceptable if they show a similar or lower risk of re-identification. k counts how many people share each combination of the columns an outsider could know; k = 5 means nobody is in a group smaller than five.</p>
+        <p><strong>If 5 is out of reach.</strong> Para 3.10 says that where k = 5 cannot be reached, more stringent safeguards are needed, for example tracking data lineage and disposing of the data after use. The environment is asked to make up for what the data cannot carry.</p>
+        <p><strong>The number is a floor, and contested above it.</strong> 5 is a minimum for external sharing, not a target for open data. How high a public release should go is not settled in the guidance or the literature, and Engineer session 3 shows why k on its own can still leak. Say which k you set and why, rather than borrowing a number.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The ICO's version, and its currency<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>PDPC's test is adapted from the UK ICO. The ICO's anonymisation guidance, published 28 March 2025, asks you to consider all practical steps reasonably likely to be used by someone motivated to identify people, and says you should adopt a motivated intruder test as part of your risk assessment. The archived copy read for these pages carries a banner that the guidance is under review, because the Data (Use and Access) Act came into law on 19 June 2025. Whether it has since been revised could not be confirmed; check the live ICO page before quoting it. For UK and EU law, see <a href="https://phoebefu6.github.io/learn-gdpr-with-phoebe/">GDPR ↗</a>.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>AOL's intruders were reporters.</strong> In 2006 AOL posted about 20 million web search queries with user names replaced by numbers: a public route. Reporters from The New York Times read the searches of user 4417749, followed the towns, shops and a surname in them, and found Thelma Arnold, a 62-year-old widow in Lilburn, Georgia. No hacking, no special tools, no criminal methods: exactly the motivated, reasonably competent intruder PDPC's test describes. A public route has to assume that person will look.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>A risk register for three routes</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">Hana is considering all three routes for her partners. Lim Su-Ann wants one page that sets them side by side: who can see the file, what they could bring, the controls, the k and the measured risk that is left. Build it for Brightwater with the desk widget in step 5, then do the same for a release you are being asked to approve.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 334" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A risk register grid with three rows and five columns. Public route: controls are a licence banning re-identification and no list of recipients; k 10 or more, stricter than 5; remaining risk 4.4 expected re-identifications per 1,000 known people at rung 6; could support rung 6 at least plus an intruder test. Partners route: agreement with named people, no onward sharing, destroy; k 5, the PDPC minimum in para 3.9; remaining risk 16.7 expected per 1,000 at rung 4; rung 4 can do with all four walls. Enclave: queries run inside, outputs checked first; k on results, small counts withheld; no rows leave, risk sits in outputs; either rung, outputs are the test. The remaining-risk column is drawn in plum.">
+        <defs>
+          <filter id="a2dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="41" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a2dHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="a2dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a2dH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .a2dL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .a2dS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .a2dA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .a2dX { font: 800 18px Inter, sans-serif; fill: #5C1A33; }
+          .a2dB { font: 800 12px Inter, sans-serif; fill: #5C1A33; }
+          .a2dN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="a2dH" x="30" y="28">BRIGHTWATER'S RISK REGISTER: ROUTE BY CONTROL, WITH WHAT IS LEFT</text>
+        <text class="a2dA" x="42" y="58">ROUTE</text>
+        <text class="a2dA" x="182" y="58">CONTROLS, PARA 3.7</text>
+        <text class="a2dA" x="382" y="58">k, AND WHY</text>
+        <text class="a2dA" x="522" y="58">REMAINING RISK, DESK</text>
+        <text class="a2dA" x="702" y="58">COULD SUPPORT</text>
+
+        <g filter="url(#a2dSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="70" width="134" height="64" rx="8" transform="rotate(-0.6 97 102)" fill="#FFFFFF"/>
+          <rect x="170" y="70" width="194" height="64" rx="8" transform="rotate(0.4 267 102)" fill="#FFFFFF"/>
+          <rect x="370" y="70" width="134" height="64" rx="8" transform="rotate(-0.4 437 102)" fill="#F7F6E4"/>
+          <rect x="510" y="70" width="174" height="64" rx="8" transform="rotate(0.4 597 102)" fill="#FBEEF3" stroke="#8E2A4F"/>
+          <rect x="690" y="70" width="160" height="64" rx="8" transform="rotate(-0.5 770 102)" fill="#FFFFFF"/>
+
+          <rect x="30" y="142" width="134" height="64" rx="8" transform="rotate(0.5 97 174)" fill="#FFFFFF"/>
+          <rect x="170" y="142" width="194" height="64" rx="8" transform="rotate(-0.4 267 174)" fill="#FFFFFF"/>
+          <rect x="370" y="142" width="134" height="64" rx="8" transform="rotate(0.4 437 174)" fill="#F7F6E4"/>
+          <rect x="510" y="142" width="174" height="64" rx="8" transform="rotate(-0.4 597 174)" fill="#FBEEF3" stroke="#8E2A4F"/>
+          <rect x="690" y="142" width="160" height="64" rx="8" transform="rotate(0.5 770 174)" fill="#FFFFFF"/>
+
+          <rect x="30" y="214" width="134" height="64" rx="8" transform="rotate(-0.5 97 246)" fill="#FFFFFF"/>
+          <rect x="170" y="214" width="194" height="64" rx="8" transform="rotate(0.4 267 246)" fill="#FFFFFF"/>
+          <rect x="370" y="214" width="134" height="64" rx="8" transform="rotate(-0.4 437 246)" fill="#F7F6E4"/>
+          <rect x="510" y="214" width="174" height="64" rx="8" transform="rotate(0.4 597 246)" fill="#FBEEF3" stroke="#8E2A4F"/>
+          <rect x="690" y="214" width="160" height="64" rx="8" transform="rotate(-0.5 770 246)" fill="#FFFFFF"/>
+          <!-- doodle: a pencil by the title -->
+          <path d="M818 30 L846 14 L852 22 L824 38 Z M818 30 L816 40 L824 38" stroke="#4A4700"/>
+        </g>
+
+        <text class="a2dL" x="42" y="96">1 · Public</text>
+        <text class="a2dS" x="42" y="114">open data portal</text>
+        <text class="a2dS" x="182" y="96">licence: no re-identifying</text>
+        <text class="a2dS" x="182" y="114">no list of recipients</text>
+        <text class="a2dL" x="382" y="96">k 10 or more</text>
+        <text class="a2dS" x="382" y="114">stricter than 5</text>
+        <text class="a2dX" x="522" y="100">4.4</text>
+        <text class="a2dS" x="522" y="120">expected /1,000, rung 6</text>
+        <text class="a2dL" x="702" y="96">rung 6 at least</text>
+        <text class="a2dS" x="702" y="114">plus an intruder test</text>
+
+        <text class="a2dL" x="42" y="168">2 · Partners</text>
+        <text class="a2dS" x="42" y="186">3 named teams</text>
+        <text class="a2dS" x="182" y="168">agreement, named people</text>
+        <text class="a2dS" x="182" y="186">no onward sharing, destroy</text>
+        <text class="a2dL" x="382" y="168">k 5</text>
+        <text class="a2dS" x="382" y="186">PDPC minimum, 3.9</text>
+        <text class="a2dX" x="522" y="172">16.7</text>
+        <text class="a2dS" x="522" y="192">expected /1,000, rung 4</text>
+        <text class="a2dL" x="702" y="168">rung 4 can do</text>
+        <text class="a2dS" x="702" y="186">with all four walls</text>
+
+        <text class="a2dL" x="42" y="240">3 · Enclave</text>
+        <text class="a2dS" x="42" y="258">query inside</text>
+        <text class="a2dS" x="182" y="240">queries run inside</text>
+        <text class="a2dS" x="182" y="258">outputs checked first</text>
+        <text class="a2dL" x="382" y="240">k on results</text>
+        <text class="a2dS" x="382" y="258">small counts withheld</text>
+        <text class="a2dB" x="522" y="240">no rows leave</text>
+        <text class="a2dS" x="522" y="258">risk sits in outputs</text>
+        <text class="a2dL" x="702" y="240">either rung</text>
+        <text class="a2dS" x="702" y="258">outputs are the test</text>
+
+        <text class="a2dN" x="30" y="302">Desk numbers computed on the real rows, 1,000 known people. Routes and verdicts: constructed draft.</text>
+        <text class="a2dN" x="30" y="320">k 10 is the desk's teaching bar, not a standard. PDPC's minimum is 5 external, 3 internal (para 3.9).</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the plum column is the only one a computer fills in; every other column is a decision</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Step 1 · List the routes.</strong> Write down every route Hana is actually considering, in her words, before anyone argues for one. A route nobody wrote down is the one that gets used under deadline.</p>
+        <div class="prompt-box good"><span class="label">★ Step 1 · the routes</span>route 1: ______________________________
+route 2: ______________________________
+route 3: ______________________________
+Brightwater: 1 public open data · 2 three named partner teams
+             under an agreement · 3 an enclave, only results leave</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 2 · Who can see it, and what can they bring?</strong> For each route, name who can see rows and what an outsider on that route could fill in about a person in the file. Use the three intruders from Part 3.</p>
+        <div class="prompt-box good"><span class="label">★ Step 2 · sight and knowledge</span>route   who sees rows          what they could bring
+public  anyone, forever        every public source, other releases
+partner ~20 named people       what a team member knows of a classmate
+enclave nobody outside         only what the results reveal</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 3 · Controls per route.</strong> Go through para 3.7(c) and the undertaking in para 3.23 for each route and mark which walls exist. Where a wall is missing, the data limb has to cover for it.</p>
+        <div class="prompt-box good"><span class="label">★ Step 3 · the walls</span>                     public   partner   enclave
+limit recipients     no       yes       yes (no rows leave)
+no onward disclosure no       yes       yes
+no re-identifying    licence  clause 7  clause 7
+destroy when done    no       30 days   n/a
+proper-use process   no       yes       output checks</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 4 · Set a k per route, and say why.</strong> Start from PDPC's minimum of 5 for external sharing (para 3.9). Go stricter where walls are missing. The desk you use in step 5 marks k &gt;= 10 as a teaching bar; it is a rule of thumb for practice, not a standard, so write your own reason next to the number.</p>
+        <div class="prompt-box good"><span class="label">★ Step 4 · k and the reason</span>route    k     why
+public   ___   ____________________________________
+partner  ___   ____________________________________
+enclave  ___   ____________________________________
+Brightwater: public 10, no walls at all; partner 5, PDPC external
+minimum plus four walls; enclave applies to results, not rows</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 5 · Measure what is left.</strong> The desk below starts at rung 4: five columns coarsened, every class under 5 suppressed. Read the single-row matches and the expected re-identifications among the 1,000 people an outsider knows. Then click rung 6 and read them again. The widget prints 0 single matches and 16.7 expected at rung 4 (725 rows suppressed, 2.23%), and 0 single matches and 4.4 expected at rung 6 (k 10, l 3, 345 rows suppressed, 1.06%). Write which route each rung could support.</p>
+        <div data-pe="desk" id="a2-desk" data-preset="p4"></div>
+        <div class="prompt-box good"><span class="label">★ Step 5 · the register line</span>rung   k    single   expected   suppressed   could support
+4      5    ___      _____      _____        ______________
+6      10   ___      _____      _____        ______________
+Brightwater: rung 4 (0, 16.7) for partners with all four walls;
+rung 6 (0, 4.4) the least for public, plus an intruder test;
+enclave: either, with every output checked before it leaves.</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>"0 single matches" is not "0 risk".</strong> At rung 4 nobody is alone, yet the expected count is still 16.7 of 1,000, because people in a class of five can each be guessed one time in five. That residue is why the route matters: on the partner route four walls stand around it, on the public route nothing does. Engineer session 4 builds the attack behind these numbers.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before Leader session 3</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li><strong>Register one real release.</strong> Take the file from last session's homework and fill in the five columns of the register for the route it actually took.</li>
+      <li><strong>Find the walls in writing.</strong> Open the agreement or terms that covered it and mark each of the four walls you can find. A wall that is only in an email does not count.</li>
+      <li><strong>Read the source.</strong> Read paras 3.7, 3.9 to 3.12, 3.18, 3.23 and 3.36 to 3.38 of PDPC's Advisory Guidelines on Selected Topics, Chapter 3. Underline the four items in para 3.7(c).</li>
+      <li><strong>Name your intruder.</strong> For that release, write one sentence describing the most motivated, reasonably competent person who could look at it. Leader session 3 picks the technique to withstand them.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Leader session 2 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · PDPC's serious-possibility test weighs two limbs. Which two?</p>
+      <button class="qopt" type="button">A · Whether names were removed, and whether consent was obtained</button>
+      <button class="qopt" type="button">B · The number of rows, and the number of columns</button>
+      <button class="qopt" type="button">C · The data, alone or with other information the recipient has or can access, and the measures and safeguards around it</button>
+      <button class="qopt" type="button">D · The encryption used, and the country the recipient is in</button>
+      <p class="qwhy">Para 3.4 puts the data and the environment in the same test. The file is only half of it; who receives it, what they hold and what binds them is the other half.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">2 · A partner team wants to give a copy to a fourth university. Which control is meant to stop that?</p>
+      <button class="qopt" type="button">A · A restriction on use and subsequent disclosure in the agreement</button>
+      <button class="qopt" type="button">B · Raising k from 5 to 10</button>
+      <button class="qopt" type="button">C · Hashing the identity numbers again</button>
+      <button class="qopt" type="button">D · The Part 9B offence alone</button>
+      <p class="qwhy">Para 3.7(c) lists restricting use and subsequent disclosure as a recipient control. Changing k changes the rows, not where they travel, and an offence deters re-identification rather than sharing.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">3 · Why can the same Brightwater file be acceptable for the named-partner route and not for open data?</p>
+      <button class="qopt" type="button">A · Because partner universities are exempt from the guidelines</button>
+      <button class="qopt" type="button">B · Because no guideline applies to open data</button>
+      <button class="qopt" type="button">C · Because the file is changed when it is posted publicly</button>
+      <button class="qopt" type="button">D · Because the risk depends on who can see it, what they can bring and what binds them, and the public route removes most of those walls</button>
+      <p class="qwhy">The rows are identical on both routes. The extent of disclosure, the other information available and the recipients' motivation all change, so the data limb has to carry more on the public route.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The two limbs of the test, the four factors, periodic review and reassessment</span><span class="note">PDPC, Advisory Guidelines on the PDPA for Selected Topics, Chapter 3, revised 23 May 2024, paras 3.4 to 3.6; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Recipient controls: limit recipients, restrict use and disclosure, proper use, destruction, contractual safeguards, undertaking, open-data legal safeguards</span><span class="note">Same guidelines, paras 3.7(c), 3.12, 3.18, 3.23, 3.34 and 3.42; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Minimum k of 5 external and 3 internal; stricter safeguards if 5 is unreachable</span><span class="note">Same guidelines, paras 3.9 and 3.10; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The motivated intruder test, adapted from the ICO</span><span class="note">Same guidelines, paras 3.11 and 3.36 to 3.38; read at source</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">ICO anonymisation guidance, published 28 March 2025, and its motivated intruder test</span><span class="note">Read in an archived 2025 copy carrying an "under review" banner after the Data (Use and Access) Act; current status not confirmed</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Unauthorised re-identification as an offence under Part 9B</span><span class="note">Cited as PDPC's guidelines state it (para 3.18); the Act itself is owned by the PDPA course</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">AOL user 4417749 and the Netflix Prize as public routes</span><span class="note">Barbaro and Zeller, The New York Times, 9 August 2006 (archived copy); Narayanan and Shmatikov 2008; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Rung 4: 0 single matches, 16.7 expected, 725 suppressed; rung 6: 0, 4.4, 345</span><span class="note">Computed on UCI Adult (Becker and Kohavi 1996, CC BY 4.0) by the in-page engine and a pandas reference</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Brightwater's three routes, draft clause 7, the intruder grid and the register verdicts</span><span class="note">Constructed and labelled; the k 10 bar is a teaching rule of thumb, not a standard</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Leader session 2 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Two limbs</b><span>The data, plus what the recipient has and the safeguards around it. Para 3.4.</span></div>
+      <div class="cheat-item"><b>Three routes</b><span>Public, named partners, enclave. Same rows, different outsiders.</span></div>
+      <div class="cheat-item"><b>Four walls</b><span>Limit recipients, no onward disclosure, no re-identifying, destroy when done.</span></div>
+      <div class="cheat-item"><b>The intruder</b><span>Motivated, reasonably competent, public sources, no crime, no special kit.</span></div>
+      <div class="cheat-item"><b>k by route</b><span>PDPC minimum 5 external, 3 internal. Stricter where walls are missing.</span></div>
+      <div class="cheat-item"><b>Not zero</b><span>Rung 4: nobody alone, still 16.7 expected of 1,000. Rung 6: 4.4.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>You can size a route and the walls around it. Leader session 3, Choosing the technique, picks the tool for each Brightwater request: generalisation and suppression, noise with a budget, or synthetic rows, and what each one costs in usefulness.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Leader session 2 of 4 · learn-privacy-engineering-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="a1-pseudonymous-is-not-anonymous.html">← Prev: Pseudonymous is not anonymous</a> &nbsp;·&nbsp; <a href="a3-choosing-the-technique.html">Next: Choosing the technique →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/pe-data.js?v=1"></script>
+<script src="../assets/pe-engine.js?v=1"></script>
+<script src="../assets/pe-desk.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

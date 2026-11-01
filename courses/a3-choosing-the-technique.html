@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Leader session 3 of 4. PDPC's technique list, the three families a leader actually chooses between (generalise and suppress, calibrated noise on counts, synthetic rows), what each one costs on 32,561 real census rows, and how to match the tool to the release.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Choosing the technique - learn privacy engineering with phoebe">
+<meta property="og:description" content="Leader session 3 of 4. Precision 51%, 0.94 people of error per count, a pay gap of 19.6 points that becomes 0.2. Every tool has a bill; match it to the release.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/courses/a3-choosing-the-technique.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Choosing the technique - learn privacy engineering with phoebe">
+<meta name="twitter:description" content="Leader session 3 of 4. Three families of protection, what each costs on real rows, and which release each one suits.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Leader session 3 · Choosing the technique - learn privacy engineering with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=2">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-privacy-engineering-with-phoebe</a> / Leader session 3 of 4</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Privacy Engineering with Phoebe · Leader session 3 of 4</div>
+    <h1>Choosing the <span class="accent">technique</span></h1>
+    <p class="sub">"Just mask it" is a technique choice made before anyone asked what the release is for. Tonight: the techniques Singapore's regulator lists and what each one does to a row, the three families a leader actually chooses between, what each one costs when measured on real census rows, and a simple tree that matches the tool to the thing leaving the building, with the US Census Bureau's published budget as a real example of choosing noise at scale.</p>
+    <div class="chip-row">
+      <span class="chip level">🟡 Leader</span>
+      <span class="chip audience">DPOs, heads of data and product leads who approve a release</span>
+      <span class="chip audience">No code</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · The list, the families, the match</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: a technique for each request</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where we start</h2>
+    </div>
+    <p class="lede">Leader session 1 put a number on the gap between pseudonymised and anonymised. Leader session 2 showed that the route, open data, named partners or an enclave, changes how big the gap is allowed to be. Tonight is the toolbox. Every technique closes the gap by taking something away from the people who receive the data: detail, accuracy, or the real rows themselves. A leader's job is not to pick the cleverest tool; it is to pick the one whose bill the recipient can afford to pay. Brightwater Social Research Institute and its three requests are constructed and labelled. Every cost on this page is measured on real rows: 32,561 people from the UCI Adult extract of the 1994 US Census.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">★ Build-along = everyone works it through</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> A one-page technique table for three real-shaped requests, a public dashboard, a partner regression and a hackathon, with the tool you would approve for each, its measured cost, and the one thing it does not protect against, written so the requester can see why they got that answer.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers PDPC's technique list</span>
+      <h2>Eight techniques, sorted by what they do to a row</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">PDPC's Guide to Basic Anonymisation (2022) lists seven techniques in its Annex A: record suppression, character masking, pseudonymisation, generalisation, swapping, data perturbation and data aggregation. An eighth, attribute suppression, is defined in Step 3 and treated in Annex B. Eight names are hard to hold in a meeting. Sort them by what they do to a row and there are only five moves: remove something, coarsen it, scramble or replace it, add noise to it, or summarise many rows into one number.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 356" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="An example row at the top: id 10482, age 37, Bachelors, Exec-managerial, US-born. Arrows lead down to five hand-drawn cards. Remove: record suppression, attribute suppression and character masking, with character masking marked in plum as Ravi's first instinct; the row after reads row or column gone, id 10482 becomes 10 star star star. Coarsen: generalisation; after, 30-39 and degree, born US or not. Swap or replace: swapping and pseudonymisation; after, age taken from another row, id becomes a7f3. Add noise: data perturbation; after, age 37 becomes 39. Summarise: data aggregation; after, no rows, only counts per group. A note says the list is PDPC's seven Annex A techniques plus attribute suppression, and synthetic data is a use case, not a technique on the list.">
+        <defs>
+          <filter id="a3aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="31" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a3aHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="a3aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a3aH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .a3aL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .a3aM { font: 600 11px Inter, sans-serif; fill: #23220E; }
+          .a3aS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .a3aB { font: 800 11px Inter, sans-serif; fill: #5C1A33; }
+          .a3aA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .a3aN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="a3aH" x="30" y="28">FIVE MOVES ON ONE ROW</text>
+
+        <g filter="url(#a3aSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="42" width="820" height="36" rx="10" transform="rotate(-0.3 440 60)" fill="url(#a3aHc)"/>
+          <path d="M109 82 L109 100" marker-end="url(#a3aAr)"/>
+          <path d="M277 82 L277 100" marker-end="url(#a3aAr)"/>
+          <path d="M445 82 L445 100" marker-end="url(#a3aAr)"/>
+          <path d="M613 82 L613 100" marker-end="url(#a3aAr)"/>
+          <path d="M781 82 L781 100" marker-end="url(#a3aAr)"/>
+          <rect x="30" y="106" width="158" height="190" rx="12" transform="rotate(-0.8 109 201)" fill="#FFFFFF"/>
+          <rect x="198" y="106" width="158" height="190" rx="12" transform="rotate(0.6 277 201)" fill="#FFFFFF"/>
+          <rect x="366" y="106" width="158" height="190" rx="12" transform="rotate(-0.5 445 201)" fill="#FFFFFF"/>
+          <rect x="534" y="106" width="158" height="190" rx="12" transform="rotate(0.7 613 201)" fill="#FFFFFF"/>
+          <rect x="702" y="106" width="148" height="190" rx="12" transform="rotate(-0.6 776 201)" fill="#FFFFFF"/>
+          <rect x="38" y="178" width="142" height="22" rx="6" fill="#FBEEF3" stroke="#8E2A4F"/>
+          <rect x="40" y="226" width="138" height="56" rx="8" fill="#F7F6E4"/>
+          <rect x="208" y="226" width="138" height="56" rx="8" fill="#F7F6E4"/>
+          <rect x="376" y="226" width="138" height="56" rx="8" fill="#F7F6E4"/>
+          <rect x="544" y="226" width="138" height="56" rx="8" fill="#F7F6E4"/>
+          <rect x="710" y="226" width="132" height="56" rx="8" fill="#F7F6E4"/>
+          <!-- doodle: scissors on the remove card -->
+          <circle cx="156" cy="124" r="4" stroke="#4A4700"/>
+          <circle cx="156" cy="138" r="4" stroke="#4A4700"/>
+          <path d="M160 126 L178 136 M160 136 L178 126" stroke="#4A4700"/>
+        </g>
+
+        <rect x="44" y="49" width="560" height="22" rx="6" fill="#FFFFFF"/>
+        <text class="a3aH" x="54" y="65">AN EXAMPLE ROW</text>
+        <text class="a3aL" x="176" y="65">id 10482 · age 37 · Bachelors · Exec-managerial · US-born</text>
+
+        <text class="a3aH" x="44" y="130">REMOVE</text>
+        <text class="a3aM" x="44" y="152">record suppression</text>
+        <text class="a3aM" x="44" y="170">attribute suppression</text>
+        <text class="a3aB" x="46" y="194">character masking</text>
+        <text class="a3aS" x="44" y="216">Ravi's first instinct</text>
+        <text class="a3aS" x="50" y="248">row or column gone</text>
+        <text class="a3aS" x="50" y="266">id 10482 to 10***</text>
+
+        <text class="a3aH" x="212" y="130">COARSEN</text>
+        <text class="a3aM" x="212" y="152">generalisation</text>
+        <text class="a3aS" x="212" y="170">exact values become</text>
+        <text class="a3aS" x="212" y="186">bands and groups</text>
+        <text class="a3aS" x="218" y="248">age 30-39 · degree</text>
+        <text class="a3aS" x="218" y="266">born: US or not</text>
+
+        <text class="a3aH" x="380" y="130">SWAP OR REPLACE</text>
+        <text class="a3aM" x="380" y="152">swapping</text>
+        <text class="a3aM" x="380" y="170">pseudonymisation</text>
+        <text class="a3aS" x="380" y="188">values move or get tokens</text>
+        <text class="a3aS" x="386" y="248">age taken from another</text>
+        <text class="a3aS" x="386" y="266">row · id to a7f3</text>
+
+        <text class="a3aH" x="548" y="130">ADD NOISE</text>
+        <text class="a3aM" x="548" y="152">data perturbation</text>
+        <text class="a3aS" x="548" y="170">values nudged by a</text>
+        <text class="a3aS" x="548" y="186">small random amount</text>
+        <text class="a3aS" x="554" y="248">age 37 to 39</text>
+        <text class="a3aS" x="554" y="266">others nudged too</text>
+
+        <text class="a3aH" x="714" y="130">SUMMARISE</text>
+        <text class="a3aM" x="714" y="152">data aggregation</text>
+        <text class="a3aS" x="714" y="170">many rows become</text>
+        <text class="a3aS" x="714" y="186">one number</text>
+        <text class="a3aS" x="720" y="248">no rows, only</text>
+        <text class="a3aS" x="720" y="266">counts per group</text>
+
+        <text class="a3aN" x="30" y="322">PDPC Guide to Basic Anonymisation (2022): seven Annex A techniques, plus attribute suppression (Step 3, Annex B).</text>
+        <text class="a3aN" x="30" y="340">Synthetic data is not a technique on the list; the guide treats it as a use case. The example row is constructed.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - eight names, five moves; masking touches one column and leaves the rest</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What each move takes away<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Remove</strong> takes whole rows (record suppression), whole columns (attribute suppression) or part of a value (character masking). It is exact about what is left and blunt about what is lost.</p>
+        <p><strong>Coarsen</strong> turns exact values into bands: age 37 becomes 30-39, sixteen education levels become five. Every row stays; every row gets vaguer.</p>
+        <p><strong>Swap or replace</strong> moves values between rows (swapping) or replaces an identifier with a token (pseudonymisation). Pseudonymisation is a replacement, not a protection: Leader session 1 showed that the columns around a token can still lead back.</p>
+        <p><strong>Add noise</strong> nudges values or results by a random amount (data perturbation). <strong>Summarise</strong> releases counts and averages instead of rows (data aggregation). These two are where calibrated noise on counts, Part 2's second family, comes from.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Where the technique sits in PDPC's five steps<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The guide sets out five steps: Step 1, know your data; Step 2, de-identify your data; Step 3, apply anonymisation techniques; Step 4, compute your risk; Step 5, manage your re-identification and disclosure risks. Two things follow for a leader. First, removing direct identifiers is Step 2, and the guide calls de-identification only the first step of anonymisation; choosing a technique is Step 3. Second, a technique is never the end: Step 4 measures what it achieved, and Step 5 manages what is left. Leader session 4 covers the sign-off that closes Steps 4 and 5.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Masking is for identifiers, not for the facts around them<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Character masking hides part of a value, typically an identity number or a phone number. It is a sensible move on a direct identifier and almost no move at all on the quasi-identifiers, because nobody masks an age or a country of birth. On Brightwater's rows, the six ordinary columns alone leave 17.18% of people unique whatever happens to the identity number. Internal masking for staff who see production data is a different problem with its own tools; <a href="https://phoebefu6.github.io/learn-data-access-control-with-phoebe/">Data Access Control ↗</a> owns it.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>"Can we just mask it?"</strong> Ravi Menon's first proposal for the partner extract was to mask the hashed identity numbers down to their first two digits. Lim Su-Ann pointed at the other columns: age, sex, race, marital status, education and country of birth, all exact. Masking moved nothing that mattered; 5,594 people were still alone on those six facts. The right question was not "which technique?" but "what does each partner need to do with the file?" Constructed Brightwater example; the numbers are measured on the real rows.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers three families and their costs</span>
+      <h2>Three families, three different bills</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">In practice a release ends up in one of three families. Generalise and suppress until every combination is shared by at least k people. Release only counts, with calibrated noise added so that no single person changes the answer much. Or release synthetic rows that imitate the real ones. Each family pays its bill in a different currency, which is why their numbers can never be put on one chart without lying. Here is what each one cost on Brightwater's real rows, as the Engineer track measured it.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 392" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three hand-drawn panels, each with its own ruler. Generalise and suppress, rung 6, k 10: 0 of 1,000 known people matched to one row; a bar shows precision 51 percent kept; 345 rows withheld, 1.06 percent; the catch: breaks if a column ships unlisted. Noise on counts: epsilon 1 per query; a short bar shows mean error 0.94 people per count at epsilon 1 and a long bar 9.42 at epsilon 0.1; the catch: a count of 0 released as minus 3.8. Synthetic rows: protection depends on the generator; a long bar shows the real pay gap of 19.6 points and a tiny bar 0.2 in independent-columns synthetic rows; the catch, in plum: a memorising generator copied 6,818 of 13,496 unique real people. A note says the three panels use three units and must not be compared across.">
+        <defs>
+          <filter id="a3bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="37" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a3bHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="a3bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a3bH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .a3bL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .a3bS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .a3bB { font: 800 11px Inter, sans-serif; fill: #5C1A33; }
+          .a3bV { font: 800 18px Inter, sans-serif; fill: #4A4700; }
+          .a3bA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .a3bN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="a3bH" x="30" y="28">THREE FAMILIES, THREE RULERS</text>
+
+        <g filter="url(#a3bSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="44" width="260" height="290" rx="12" transform="rotate(-0.6 160 189)" fill="#FFFFFF"/>
+          <rect x="310" y="44" width="260" height="290" rx="12" transform="rotate(0.5 440 189)" fill="#FFFFFF"/>
+          <rect x="590" y="44" width="260" height="290" rx="12" transform="rotate(-0.5 720 189)" fill="#FFFFFF"/>
+          <!-- panel 1 bar: precision 51% of 220 -->
+          <rect x="48" y="200" width="220" height="14" rx="3"/>
+          <rect x="48" y="200" width="112" height="14" rx="3" fill="url(#a3bHc)"/>
+          <!-- panel 2 bars: 0.94 and 9.42, scaled to 220 -->
+          <rect x="328" y="200" width="22" height="14" rx="3" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="328" y="220" width="220" height="14" rx="3" fill="url(#a3bHc)"/>
+          <!-- panel 3 bars: real gap 19.6 and synthetic 0.2, scaled to 220 -->
+          <rect x="608" y="200" width="220" height="14" rx="3" fill="url(#a3bHc)"/>
+          <rect x="608" y="220" width="3" height="14" rx="1" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="600" y="300" width="240" height="26" rx="6" fill="#FBEEF3" stroke="#8E2A4F"/>
+          <!-- doodle: a ruler on panel 1 -->
+          <rect x="236" y="58" width="40" height="10" stroke="#4A4700"/>
+          <path d="M244 58 L244 63 M252 58 L252 63 M260 58 L260 63 M268 58 L268 63" stroke="#4A4700"/>
+        </g>
+
+        <text class="a3bH" x="48" y="72">GENERALISE + SUPPRESS</text>
+        <text class="a3bS" x="48" y="90">rung 6: age 20y, degree yes/no, k 10</text>
+        <text class="a3bA" x="48" y="118">PROTECTION</text>
+        <text class="a3bV" x="48" y="144">0 of 1,000</text>
+        <text class="a3bS" x="48" y="162">known people matched to one row</text>
+        <text class="a3bA" x="48" y="190">USEFULNESS · precision kept</text>
+        <text class="a3bL" x="48" y="252">precision 51%</text>
+        <text class="a3bS" x="48" y="268">345 rows withheld, 1.06%</text>
+        <text class="a3bA" x="48" y="296">THE CATCH</text>
+        <text class="a3bS" x="48" y="314">breaks if a column ships unlisted</text>
+
+        <text class="a3bH" x="328" y="72">NOISE ON COUNTS</text>
+        <text class="a3bS" x="328" y="90">16 counts by education, Laplace</text>
+        <text class="a3bA" x="328" y="118">PROTECTION</text>
+        <text class="a3bV" x="328" y="144">epsilon 1</text>
+        <text class="a3bS" x="328" y="162">per query, sensitivity 1</text>
+        <text class="a3bA" x="328" y="190">USEFULNESS · people of error</text>
+        <text class="a3bS" x="358" y="211">0.94 at epsilon 1</text>
+        <text class="a3bL" x="328" y="252">mean error 0.94 people</text>
+        <text class="a3bS" x="328" y="268">per count; 9.42 at epsilon 0.1</text>
+        <text class="a3bA" x="328" y="296">THE CATCH</text>
+        <text class="a3bS" x="328" y="314">a count of 0 released as -3.8</text>
+
+        <text class="a3bH" x="608" y="72">SYNTHETIC ROWS</text>
+        <text class="a3bS" x="608" y="90">two toy generators, 32,561 rows</text>
+        <text class="a3bA" x="608" y="118">PROTECTION</text>
+        <text class="a3bV" x="608" y="144">it depends</text>
+        <text class="a3bS" x="608" y="162">on the generator; test for copies</text>
+        <text class="a3bA" x="608" y="190">USEFULNESS · points of pay gap</text>
+        <text class="a3bS" x="620" y="231">0.2 in synthetic rows</text>
+        <text class="a3bL" x="608" y="252">pay gap 19.6 vs 0.2</text>
+        <text class="a3bS" x="608" y="268">real vs independent columns</text>
+        <text class="a3bA" x="608" y="292">THE CATCH</text>
+        <text class="a3bB" x="610" y="318">6,818 of 13,496 uniques copied</text>
+
+        <text class="a3bN" x="30" y="358">Three rulers: precision kept, people per count, points of pay gap. Compare within a panel, never across.</text>
+        <text class="a3bN" x="30" y="376">All computed on the real rows (Engineer sessions 2 to 7). The synthetic generators are deliberately simple toys.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - every family protects; each one sends a different bill</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Generalise and suppress: the bill is paid in detail and in people<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>What it buys.</strong> At the heaviest setting the Engineer track measured, rung 6 (age in 20-year bands, education as degree yes or no, k 10), not one of 1,000 people an outsider knows six facts about can be matched to a single row.</p>
+        <p><strong>What it costs.</strong> Precision falls to 51%. Precision is the Release Desk's rule of thumb: 1 minus the average generalisation height, so 51% means the columns keep, on average, about half their detail. And 345 rows, 1.06% of the file, are withheld because their combination is still too rare.</p>
+        <p><strong>What it does not stop.</strong> The protection holds only for the columns the release record lists. Engineer session 4 shows what happens when one more column ships exact without being declared: on the k 5 file, single matches go from 0 to 22 while k still reads 5. The rows are still rows, so anyone who can see them can try.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Noise on counts: the bill is paid in error<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>What it buys.</strong> Differential privacy adds random noise, sized by a setting called epsilon, so that adding or removing any one person barely changes what comes out. The guarantee is about the method, not about one particular file, and it holds whatever the outsider already knows.</p>
+        <p><strong>What it costs.</strong> On sixteen counts of high earners by education level, epsilon 1 gives a mean absolute error of 0.94 people per count. Epsilon 0.1, ten times stronger, gives 9.42. The noise is the same size for every count, so it is invisible on 2,221 Bachelors and fatal on small cells: the Preschool count of 0 was released as -3.8.</p>
+        <p><strong>What it does not stop.</strong> Asking too many questions. Every query spends part of a budget, and a budget split across ten queries makes each one as noisy as epsilon 0.1. Engineer session 6 spends one. There is no agreed "safe" epsilon; that disagreement is real and not resolved here.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Synthetic rows: the bill depends on the generator<span class="mini">1 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Generator one copies nothing and keeps nothing.</strong> A generator that draws each column independently keeps every column's mix and destroys the relationships between them. On the real rows, men are 19.6 points more likely than women to earn over 50K; in its synthetic rows, 0.2. A researcher studying the pay gap gets a file that says there is none.</p>
+        <p><strong>Generator two keeps everything by copying.</strong> A generator that memorises real rows keeps the gap (19.9) and reproduces 6,818 of the 13,496 real people who are unique in the file. Even the independent generator matches 2,183 of them exactly, by chance, which is why a copy count only means something against a chance baseline. Engineer session 7 runs both.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The disagreement on synthetic data<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>The vendor position.</strong> A common sales claim is that synthetic data is anonymous by construction: no row is a real person, so nothing can be re-identified.</p>
+        <p><strong>The research position.</strong> Stadler, Oprisanu and Troncoso ("Synthetic Data - Anonymisation Groundhog Day", USENIX Security 2022) tested generators against linkage, membership inference and attribute inference. Their finding: synthetic data either does not prevent the attacks or does not keep the data useful, giving no better tradeoff than traditional anonymisation, and the tradeoff is hard to predict. Their phrase: synthetic data is "far from the holy grail of privacy-preserving data publishing".</p>
+        <p><strong>The regulator's position.</strong> PDPC's guide does not list synthetic data as a technique. It treats record-level synthetic data as a use case, created by heavily anonymising the original, and says it is not suitable for sophisticated purposes such as AI model training or data analytics. Generating synthetic data from scratch is outside the guide's scope.</p>
+        <p><strong>What a leader does with that.</strong> Neither side is settled for every generator, so do not settle it by assertion. Approve synthetic rows only with a test result attached: copies against a chance baseline, and a check on the one relationship the user needs.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Where PDPC's guide stops<span class="mini">1 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>The guide measures risk with k-anonymity. In a footnote it notes that homogeneity attacks can be addressed with the extensions l-diversity and t-closeness, and says those topics are outside its scope. In Annex C it says alternative methods such as differential privacy have also emerged. It teaches neither. Engineer sessions 3, 5 and 6 cover them from the research that defined them. A release built on them is not outside PDPC's thinking; it is past the point where the basic guide stops giving instructions.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Groundhog Day.</strong> Stadler and colleagues chose their title deliberately: the promise that a new method makes data safe to share without loss has been made before, about every earlier method, and the same tradeoff came back each time. That is the posture to bring to any pitch that says a technique has no bill.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers matching tool to release</span>
+      <h2>Match the tool to what leaves the building</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Start from the output, not the technique. If what leaves is a table of counts, noise on the counts protects every person and costs only accuracy you can state. If what leaves is rows for analysis, generalise and suppress, or keep the rows in an enclave and let only results out. If what leaves is rows that only need to look real, for testing or a demo, synthetic rows can do it, as long as someone has tested them for copies. The largest example of the first branch is a national census.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn decision tree. The root, in plum, asks what will leave the building. Three arrows lead to three questions. Counts or tables, such as a dashboard or a published table, leads to noise on the counts, calibrated to epsilon, with the budget split across every query and epsilon published with the table. Rows for analysis, such as a regression or a model fit, leads to generalise and suppress to k then check l, or keep rows in an enclave as in Leader session 2. Realistic rows for testing, such as a hackathon or demo, leads to synthetic rows tested for copies against a chance baseline and not used for the analysis itself. A note gives the real example of the first branch: Census Bureau release CB21-CN.42 named a privacy-loss budget of epsilon 19.61 for the redistricting product, 17.14 persons plus 2.47 housing units, and the TopDown Algorithm.">
+        <defs>
+          <filter id="a3cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="41" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a3cHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="a3cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a3cH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .a3cL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .a3cS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .a3cW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .a3cN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="a3cH" x="30" y="28">START FROM THE OUTPUT</text>
+
+        <g filter="url(#a3cSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="300" y="44" width="280" height="44" rx="12" transform="rotate(-0.6 440 66)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <path d="M400 92 L170 134" marker-end="url(#a3cAr)"/>
+          <path d="M440 92 L440 134" marker-end="url(#a3cAr)"/>
+          <path d="M480 92 L710 134" marker-end="url(#a3cAr)"/>
+          <rect x="30" y="140" width="250" height="54" rx="10" transform="rotate(-1 155 167)" fill="#FFFFFF"/>
+          <rect x="315" y="140" width="250" height="54" rx="10" transform="rotate(0.8 440 167)" fill="#FFFFFF"/>
+          <rect x="600" y="140" width="250" height="54" rx="10" transform="rotate(-0.7 725 167)" fill="#FFFFFF"/>
+          <path d="M155 198 L155 222" marker-end="url(#a3cAr)"/>
+          <path d="M440 198 L440 222" marker-end="url(#a3cAr)"/>
+          <path d="M725 198 L725 222" marker-end="url(#a3cAr)"/>
+          <rect x="30" y="228" width="250" height="92" rx="12" transform="rotate(0.6 155 274)" fill="#F7F6E4"/>
+          <rect x="315" y="228" width="250" height="92" rx="12" transform="rotate(-0.5 440 274)" fill="#F7F6E4"/>
+          <rect x="600" y="228" width="250" height="92" rx="12" transform="rotate(0.5 725 274)" fill="#F7F6E4"/>
+          <!-- doodle: a door beside the root -->
+          <rect x="600" y="48" width="22" height="36" stroke="#4A4700"/>
+          <circle cx="617" cy="67" r="1.5" stroke="#4A4700"/>
+        </g>
+
+        <text class="a3cW" x="320" y="71">WHAT WILL LEAVE THE BUILDING?</text>
+
+        <text class="a3cL" x="46" y="162">Counts or tables</text>
+        <text class="a3cS" x="46" y="180">a dashboard, a published table</text>
+        <text class="a3cL" x="331" y="162">Rows, for analysis</text>
+        <text class="a3cS" x="331" y="180">a regression, a model fit</text>
+        <text class="a3cL" x="616" y="162">Realistic rows, for testing</text>
+        <text class="a3cS" x="616" y="180">a hackathon, a demo system</text>
+
+        <text class="a3cH" x="46" y="252">NOISE ON THE COUNTS</text>
+        <text class="a3cL" x="46" y="270">calibrated to epsilon</text>
+        <text class="a3cS" x="46" y="288">budget split across every query</text>
+        <text class="a3cS" x="46" y="304">publish epsilon with the table</text>
+
+        <text class="a3cH" x="331" y="252">GENERALISE + SUPPRESS</text>
+        <text class="a3cL" x="331" y="270">to k, then check l</text>
+        <text class="a3cS" x="331" y="288">or keep the rows in an enclave</text>
+        <text class="a3cS" x="331" y="304">and let only results out</text>
+
+        <text class="a3cH" x="616" y="252">SYNTHETIC ROWS</text>
+        <text class="a3cL" x="616" y="270">tested for copies</text>
+        <text class="a3cS" x="616" y="288">matches vs a chance baseline</text>
+        <text class="a3cS" x="616" y="304">not for the analysis itself</text>
+
+        <text class="a3cN" x="30" y="348">A real example of the first branch: Census Bureau release CB21-CN.42 (9 June 2021) names a privacy-loss</text>
+        <text class="a3cN" x="30" y="366">budget of epsilon 19.61 for redistricting data, 17.14 persons + 2.47 housing units, and the TopDown Algorithm.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - ask what leaves, then pick the tool; never the other way round</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Reading the tree in a meeting<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Counts or tables.</strong> When the user only ever needs totals, give them totals. Noise protects everyone in the table, including the people in the small cells that a generalised file would have had to withhold, and its cost is a number you can print beside the table. The price is that the owner has to accept "about 361", not "361".</p>
+        <p><strong>Rows for analysis.</strong> A researcher fitting a model needs rows. Generalisation keeps rows but blurs exactly the columns a model leans on. When the analysis needs the fine detail, the honest answer is often not a file at all but an enclave: the rows stay inside, the researcher's code runs there, and only checked results leave. Leader session 2 set out that route.</p>
+        <p><strong>Realistic rows for testing.</strong> A hackathon or a test system needs rows that behave like the real ones in shape, not in truth. That is the one job synthetic rows suit without argument, provided they were tested for copies. PDPC's guide makes the same split: record-level synthetic data for uses like testing, not for AI model training or data analytics.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>What the Census release says, and what it does not<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>What it says.</strong> The US Census Bureau's press release CB21-CN.42, dated 9 June 2021, sets "a total privacy-loss budget for the redistricting data product" of epsilon 19.61, which includes 17.14 for the persons file and 2.47 for the housing unit data. It says the team will prepare the TopDown Algorithm for final testing.</p>
+        <p><strong>What it does not say.</strong> The number covers the redistricting product only, not every 2020 Census output. The budget for the later demographic and housing characteristics file is not given here, and no primary figure for it is used on this page. The release itself does not use the words "differential privacy"; the Bureau's move to differential privacy for 2020 is widely reported, and the release's own terms are a privacy-loss budget and the TopDown Algorithm.</p>
+        <p><strong>What a leader takes from it.</strong> A national statistics office chose a number, split it between two files, and published it. 19.61 is not a recommendation for anyone else's data: a budget only means something together with its unit of privacy and the queries it covers, which Leader session 4 puts on the sign-off.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>A budget, written down.</strong> The most useful thing about the Census Bureau's 19.61 is not its size; it is that it exists in public, split by file, with a date and a release number. Most organisations that add noise to outputs cannot tell you their epsilon at all. When a team proposes noise on counts, ask for the number, the split and the queries it covers, the three things the Bureau put in one paragraph.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>A technique for each request</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">Three requests have reached Lim Su-Ann's desk in the same week. Brightwater's communications team wants a public dashboard. One of the university partners wants rows for a regression. Dr Hana Seow has agreed to sponsor a student hackathon that wants "realistic data". One extract, three outputs, three different answers. Work through each, write down the tool, its measured cost and the one thing it does not protect against, then read the noise yourself in the widget before you brief the dashboard's owner.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three hand-drawn request cards. A, public dashboard of counts by education and income band: tool, noise on the counts; cost, mean error 0.94 per count at epsilon 1, 9.42 at epsilon 0.1; does not protect against a budget split over many queries. B, partner regression on row-level age and education: tool, generalise and suppress to k 10; cost, precision 51 percent and 345 rows withheld, with age in 20-year bands and degree yes or no; does not protect, in plum: it coarsens the very columns the regression needs. C, hackathon wanting realistic rows: tool, synthetic rows tested for copies; cost, the pay gap of 19.6 points becomes 0.2 in independent-columns rows; does not protect against a generator that memorises, which copied 6,818 of 13,496 uniques. A note says request B's honest answer may be the enclave.">
+        <defs>
+          <filter id="a3dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="43" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="a3dHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="a3dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .a3dH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .a3dL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .a3dS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .a3dB { font: 800 11px Inter, sans-serif; fill: #5C1A33; }
+          .a3dA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .a3dN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="a3dH" x="30" y="28">ONE EXTRACT, THREE REQUESTS, THREE ANSWERS</text>
+
+        <g filter="url(#a3dSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="44" width="260" height="240" rx="12" transform="rotate(-0.8 160 164)" fill="#FFFFFF"/>
+          <rect x="310" y="44" width="260" height="240" rx="12" transform="rotate(0.6 440 164)" fill="#FFFFFF"/>
+          <rect x="590" y="44" width="260" height="240" rx="12" transform="rotate(-0.6 720 164)" fill="#FFFFFF"/>
+          <rect x="40" y="106" width="240" height="44" rx="8" fill="#F7F6E4"/>
+          <rect x="320" y="106" width="240" height="44" rx="8" fill="#F7F6E4"/>
+          <rect x="600" y="106" width="240" height="44" rx="8" fill="#F7F6E4"/>
+          <rect x="320" y="236" width="240" height="38" rx="8" fill="#FBEEF3" stroke="#8E2A4F"/>
+          <!-- doodle: three little bars on the dashboard card -->
+          <path d="M252 84 L252 70 M260 84 L260 62 M268 84 L268 74 M246 86 L274 86" stroke="#4A4700"/>
+        </g>
+
+        <text class="a3dH" x="46" y="68">A · PUBLIC DASHBOARD</text>
+        <text class="a3dS" x="46" y="86">counts by education, income band</text>
+        <text class="a3dA" x="50" y="122">TOOL</text>
+        <text class="a3dL" x="50" y="140">noise on the counts</text>
+        <text class="a3dA" x="46" y="172">COST</text>
+        <text class="a3dL" x="46" y="190">error 0.94 per count</text>
+        <text class="a3dS" x="46" y="206">at epsilon 1; 9.42 at epsilon 0.1</text>
+        <text class="a3dA" x="46" y="232">DOES NOT PROTECT AGAINST</text>
+        <text class="a3dS" x="46" y="250">a budget split over many queries</text>
+        <text class="a3dS" x="46" y="266">(Engineer session 6)</text>
+
+        <text class="a3dH" x="326" y="68">B · PARTNER REGRESSION</text>
+        <text class="a3dS" x="326" y="86">row-level age and education</text>
+        <text class="a3dA" x="330" y="122">TOOL</text>
+        <text class="a3dL" x="330" y="140">generalise + suppress, k 10</text>
+        <text class="a3dA" x="326" y="172">COST</text>
+        <text class="a3dL" x="326" y="190">precision 51%, 345 withheld</text>
+        <text class="a3dS" x="326" y="206">age in 20y bands, degree yes/no</text>
+        <text class="a3dA" x="326" y="232">DOES NOT PROTECT AGAINST</text>
+        <text class="a3dB" x="330" y="252">it coarsens the very columns</text>
+        <text class="a3dB" x="330" y="267">the regression needs</text>
+
+        <text class="a3dH" x="606" y="68">C · HACKATHON ROWS</text>
+        <text class="a3dS" x="606" y="86">rows that look and behave real</text>
+        <text class="a3dA" x="610" y="122">TOOL</text>
+        <text class="a3dL" x="610" y="140">synthetic, tested for copies</text>
+        <text class="a3dA" x="606" y="172">COST</text>
+        <text class="a3dL" x="606" y="190">pay gap 19.6 becomes 0.2</text>
+        <text class="a3dS" x="606" y="206">independent-columns generator</text>
+        <text class="a3dA" x="606" y="232">DOES NOT PROTECT AGAINST</text>
+        <text class="a3dS" x="606" y="250">a generator that memorises:</text>
+        <text class="a3dS" x="606" y="266">6,818 of 13,496 uniques copied</text>
+
+        <text class="a3dN" x="30" y="310">Costs from Engineer sessions 2 to 7, computed on the real rows. The three Brightwater requests are constructed.</text>
+        <text class="a3dN" x="30" y="328">Request B's honest answer may be the enclave: the regression runs inside, and only checked results leave.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the plum box is the conversation the requester has not had yet</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Step 1 · Request A, the public dashboard.</strong> The communications team wants counts of people by education level and income band, on a public page. Nobody will ever see a row. Run it down the tree: the output is a table of counts, so the branch is noise on the counts. A public page has no agreement and no recipient list, so the protection has to live in the numbers themselves.</p>
+        <div class="prompt-box good"><span class="label">★ Step 1 · request A</span>output:      counts by education x income band, public page
+branch:      counts or tables -&gt; noise on the counts
+why not rows: nobody needs a row; a row on a public page has no controls
+Brightwater: approve noise; size it in step 5</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 2 · Request B, the partner regression.</strong> A university team wants row-level data to model income on age and education. The tree says generalise and suppress. Now read the cost against the purpose: rung 6, the setting that gets single matches to 0, puts age in 20-year bands and education into degree yes or no. Those are the two columns the regression is about.</p>
+        <div class="prompt-box good"><span class="label">★ Step 2 · request B</span>output:      rows, for a regression on age and education
+branch:      rows for analysis -&gt; generalise + suppress, or enclave
+rung 6 cost: precision 51%, 345 rows withheld, age 20y, degree yes/no
+conflict:    the protection removes the detail the model needs
+Brightwater: offer the enclave first; a coarsened file second</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 3 · Request C, the hackathon.</strong> Students want rows that look real so they can build and test tools over a weekend. Nobody is publishing findings from them. This is the branch synthetic rows suit, and the only one: PDPC's guide says record-level synthetic data is not suitable for AI model training or data analytics. The condition is a test for copies before a single row leaves.</p>
+        <div class="prompt-box good"><span class="label">★ Step 3 · request C</span>output:      realistic rows for a weekend of building and testing
+branch:      realistic rows -&gt; synthetic, tested for copies
+test:        exact copies of real unique people vs a chance baseline
+             (chance alone gives 2,183 of 13,496; memorising gives 6,818)
+Brightwater: approve synthetic, with the copy test attached</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 4 · Write the table.</strong> One row per request: the tool, the measured cost, and the one thing it does not protect against. The third column is the one requesters skip and the one that keeps you honest. Each line should be readable by the person who asked.</p>
+        <div class="prompt-box good"><span class="label">★ Step 4 · the technique table</span>request        tool                    cost                       does not protect against
+A dashboard    noise on counts         0.94 per count at eps 1    too many queries on one budget
+B regression   enclave, or k 10 file   precision 51%, 345 rows    a column shipped unlisted
+C hackathon    synthetic, tested       pay gap 19.6 -&gt; 0.2        a generator that memorises
+your request:  ______________________  _________________________  ______________________________</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 5 · Read the noise before you brief request A's owner.</strong> Open the widget below. At its default, epsilon 1 and one query, read the mean absolute error across the sixteen education counts and look at the Preschool bar. Then move epsilon to 0.1 and read both again. The widget prints 0.94 and -3.8 at epsilon 1, and 9.42 and -37.5 at epsilon 0.1. Those two pairs are your brief.</p>
+        <div data-pe="dp" id="a3-dp"></div>
+        <div class="prompt-box good"><span class="label">★ Step 5 · the brief for request A</span>At epsilon 1, each published count is off by about 0.94 people on average.
+At epsilon 0.1 it is off by about 9.42; the protection is stronger, the table is vaguer.
+Small cells suffer most: a true 0 was released as -3.8 (epsilon 1) and -37.5 (epsilon 0.1).
+Clamping negatives to 0 afterwards costs no privacy.
+Decision needed from you: which epsilon, and how many queries it must cover: ______</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>Give every requester the third column.</strong> "You get noisy counts, about one person of error each, and the budget runs out if you ask for fifty breakdowns" is an answer a communications team can plan around. A tool without its limit is a promise you will have to break later.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before Leader session 4</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li><strong>Sort your own requests.</strong> List the last three data-sharing requests at your organisation and put each one on a branch of the tree: counts, rows for analysis, or realistic rows.</li>
+      <li><strong>Find one mismatch.</strong> Look for a request that got the wrong family: rows shipped where counts would do, or a coarsened file sent to someone whose analysis needed the detail. Write one line on what a better match would have been.</li>
+      <li><strong>Ask for a third column.</strong> For one technique already in use, ask the team that runs it what it does not protect against. If nobody can say, that is the finding.</li>
+      <li><strong>Read one page.</strong> Read PDPC's Guide to Basic Anonymisation (2022), the synthetic data use case on page 17, and Annex A's list of techniques. Note one technique you would never use alone, and why.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Leader session 3 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · How does PDPC's Guide to Basic Anonymisation (2022) treat record-level synthetic data?</p>
+      <button class="qopt" type="button">A · As one of the seven Annex A techniques, safe for any purpose</button>
+      <button class="qopt" type="button">B · As anonymous by construction, because no row is a real person</button>
+      <button class="qopt" type="button">C · As a use case made by heavily anonymising the original, not suitable for AI model training or data analytics</button>
+      <button class="qopt" type="button">D · It does not mention synthetic data at all</button>
+      <p class="qwhy">Synthetic data appears as a use case, not a technique, and the guide limits it. Generating it from scratch is outside the guide's scope. The "anonymous by construction" claim is the vendor position that Stadler et al. tested and disputed.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">2 · The communications team wants a public dashboard of counts by education level. Which family suits it best?</p>
+      <button class="qopt" type="button">A · Calibrated noise on the counts, with the epsilon and the error stated</button>
+      <button class="qopt" type="button">B · Character masking on the identity numbers</button>
+      <button class="qopt" type="button">C · Releasing the generalised rows so the public can count them</button>
+      <button class="qopt" type="button">D · Synthetic rows, so the dashboard looks realistic</button>
+      <p class="qwhy">When only totals leave, release totals. Noise protects every person, including those in small cells, and its cost is printable: about 0.94 people per count at epsilon 1 on Brightwater's sixteen counts.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">3 · An engineer reports that the heavily generalised file has a precision of 51%. What does that mean?</p>
+      <button class="qopt" type="button">A · 51% of the rows were withheld</button>
+      <button class="qopt" type="button">B · 51% of people can still be re-identified</button>
+      <button class="qopt" type="button">C · The file is 51% anonymous</button>
+      <button class="qopt" type="button">D · On the desk's rule of thumb, the columns keep about half their detail on average after coarsening</button>
+      <p class="qwhy">Precision is 1 minus the average generalisation height, a usefulness measure, not a risk measure. At that setting only 345 rows, 1.06%, were withheld, and 0 of 1,000 known people matched a single row.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Seven Annex A techniques plus attribute suppression; the five steps; de-identification as the first step</span><span class="note">PDPC, Guide to Basic Anonymisation (2022), Steps 1 to 5 (p18 to p25), Annex A (p34 to p43), Annex B (p44); read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Record-level synthetic data as a use case, not suitable for AI model training or data analytics; from scratch out of scope</span><span class="note">PDPC, Guide to Basic Anonymisation (2022), p17 and footnote 7; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">l-diversity and t-closeness outside the guide's scope; differential privacy named as an alternative</span><span class="note">PDPC, Guide to Basic Anonymisation (2022), footnote 11 (p25) and Annex C (p49); read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Synthetic data "far from the holy grail"; no better tradeoff than traditional anonymisation</span><span class="note">Stadler, Oprisanu and Troncoso, "Synthetic Data - Anonymisation Groundhog Day", arXiv 2011.07018, USENIX Security 2022; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Redistricting privacy-loss budget epsilon 19.61 = 17.14 persons + 2.47 housing units; TopDown Algorithm</span><span class="note">US Census Bureau press release CB21-CN.42, 9 June 2021; read at source. Redistricting product only</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Rung 6 precision 51%, 345 rows withheld, 0 single matches; epsilon 1 error 0.94, epsilon 0.1 error 9.42, Preschool -3.8; pay gap 19.6 vs 0.2; 6,818 and 2,183 of 13,496 uniques reproduced</span><span class="note">Computed on UCI Adult (Becker and Kohavi 1996, CC BY 4.0) by the in-page engine and a pandas reference</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">The move to differential privacy for the 2020 Census</span><span class="note">Widely reported; not stated in those words in the release read. No budget is given here for later 2020 products</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Brightwater, Lim Su-Ann, Ravi Menon, Dr Hana Seow and the three requests</span><span class="note">Constructed and labelled; the vendor claim on synthetic data is described as a common position, not quoted</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Leader session 3 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Five moves</b><span>Remove, coarsen, swap or replace, add noise, summarise. PDPC's eight techniques sort into them.</span></div>
+      <div class="cheat-item"><b>Three families</b><span>Generalise and suppress; noise on counts; synthetic rows. Each pays a different bill.</span></div>
+      <div class="cheat-item"><b>Start from the output</b><span>Counts leave: noise. Rows for analysis: k, or an enclave. Rows for testing: synthetic, tested.</span></div>
+      <div class="cheat-item"><b>Read the bill</b><span>Precision 51% at k 10. About 0.94 people per count at epsilon 1. Pay gap 19.6 becomes 0.2.</span></div>
+      <div class="cheat-item"><b>Synthetic is contested</b><span>PDPC: a use case, not for analytics. Stadler: far from the holy grail. Approve only with a copy test.</span></div>
+      <div class="cheat-item"><b>The third column</b><span>For every tool, write what it does not protect against, and give it to the requester.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>You can match a tool to a release and state its bill. Leader session 4 is the signature: PDPC's thresholds and what to do when they cannot be met, the release record that lists every column, epsilon as a number on a sign-off, and the date you put in the diary to look at the release again.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Leader session 3 of 4 · learn-privacy-engineering-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="a2-the-release-environment.html">← Prev: The release environment</a> &nbsp;·&nbsp; <a href="a4-signing-off-a-release.html">Next: Signing off a release →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/pe-data.js?v=1"></script>
+<script src="../assets/pe-engine.js?v=1"></script>
+<script src="../assets/pe-desk.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

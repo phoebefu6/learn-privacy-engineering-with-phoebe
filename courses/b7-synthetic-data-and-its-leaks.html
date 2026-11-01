@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Engineer session 7 of 8. What synthetic data is, what PDPC says about it, and how to test a synthetic file before release: two toy generators on 32,561 real census rows, the pay gap that one of them destroys, and the 6,818 unique people the other one copies.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="Synthetic data and its leaks - learn privacy engineering with phoebe">
+<meta property="og:description" content="Engineer session 7 of 8. A generator that copies nothing destroys the pay gap; a generator that keeps it reproduces 6,818 unique real people. Test the file against a chance baseline.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/courses/b7-synthetic-data-and-its-leaks.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Synthetic data and its leaks - learn privacy engineering with phoebe">
+<meta name="twitter:description" content="Engineer session 7 of 8. Utility lost, rows memorised, and the chance baseline that tells one from the other.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Engineer session 7 · Synthetic data and its leaks - learn privacy engineering with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=2">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-privacy-engineering-with-phoebe</a> / Engineer session 7 of 8</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Privacy Engineering with Phoebe · Engineer session 7 of 8</div>
+    <h1>Synthetic data and <span class="accent">its leaks</span></h1>
+    <p class="sub">"Just give them synthetic rows" sounds like the end of the privacy problem: no row is a real person, so nobody can be found. Tonight you test that sentence on 32,561 real census rows with two toy generators. One copies nothing and destroys the relationship a researcher came for. The other keeps the relationship and reproduces thousands of real people who were unique in the file. Between them sits the one measurement that tells a leak from a coincidence: the chance baseline.</p>
+    <div class="chip-row">
+      <span class="chip level">🟠 Engineer</span>
+      <span class="chip audience">Data engineers and analysts who prepare a release</span>
+      <span class="chip audience">pandas or the in-page widget</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Generators, utility, copies</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: test before release</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where we are</h2>
+    </div>
+    <p class="lede">Six sessions in, you can generalise a file to k, check l and t, run the linkage attack and spend an epsilon budget on counts. Tonight Brightwater gets the request every data team gets sooner or later: a hackathon partner wants "realistic rows" and someone suggests synthetic data as the answer. Brightwater and its people are constructed and labelled. The rows are real: the 32,561 people of the UCI Adult extract from the 1994 US Census, the same file as every session before. The two generators are toys, built on purpose to show the two ways a synthetic file fails, and the widget runs both of them live on those rows.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">★ Build-along = everyone works it through</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> A four-test check you can run on any synthetic file before it leaves the building: exact matches against a chance baseline, unique people reproduced against the same baseline, one utility check on a relationship the recipient needs, and an attribute inference spot check. Plus a short pandas script that does the first test, and the synthetic line for the release record.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers what synthetic data is and its PDPC status</span>
+      <h2>A generator learns from real rows, then writes new ones</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">A synthetic-data generator reads the real file, learns something about it, and writes rows that look like it. Everything depends on what it learned. Learn too little and the new rows lose the patterns that made the file worth sharing. Learn too much and the new rows are the old rows with a light disguise. Tonight's two toys sit at those two ends, on the same eight columns: the six quasi-identifiers (age, sex, race, marital status, education, country of birth) plus occupation and income band.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 352" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Real rows on the left, 32,561 UCI Adult rows with eight columns. Two arrows lead to two generators. The independent columns generator draws each column on its own from its real distribution. The memorising generator copies one real row whole and nudges age by minus 2 to plus 2 in half the copies; its path is drawn as a plum copy arrow. Both write 32,561 synthetic rows on the right, where one row is highlighted in plum as a real row, copied.">
+        <defs>
+          <filter id="b7aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="71" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b7aHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b7aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b7aH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b7aL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b7aS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b7aB { font: 800 11px Inter, sans-serif; fill: #5C1A33; }
+          .b7aW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b7aN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b7aH" x="30" y="28">TWO WAYS TO TURN REAL ROWS INTO SYNTHETIC ROWS</text>
+
+        <g filter="url(#b7aSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="56" width="220" height="240" rx="12" transform="rotate(-0.5 140 176)" fill="url(#b7aHc)"/>
+          <rect x="330" y="56" width="240" height="112" rx="12" transform="rotate(0.6 450 112)" fill="#FFFFFF"/>
+          <rect x="330" y="190" width="240" height="106" rx="12" transform="rotate(-0.6 450 243)" fill="#FFFFFF"/>
+          <rect x="650" y="56" width="200" height="240" rx="12" transform="rotate(0.4 750 176)" fill="#F7F6E4" stroke="#7A7600"/>
+          <path d="M668 150 L832 150 M668 172 L832 172 M668 194 L832 194 M668 216 L832 216" stroke="#57553F" stroke-width="1.4"/>
+          <rect x="664" y="238" width="172" height="30" rx="6" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <path d="M256 140 L322 112" marker-end="url(#b7aAr)"/>
+          <path d="M578 112 L644 140" marker-end="url(#b7aAr)"/>
+          <path d="M256 252 L322 252" stroke="#8E2A4F" stroke-width="3" marker-end="url(#b7aAr)"/>
+          <path d="M578 252 L644 252" stroke="#8E2A4F" stroke-width="3" marker-end="url(#b7aAr)"/>
+          <!-- doodle: a die on the independent generator, drawn at random -->
+          <rect x="522" y="120" width="30" height="30" rx="5" transform="rotate(-4 537 135)" stroke="#4A4700"/>
+          <circle cx="530" cy="128" r="1.6" stroke="#4A4700"/>
+          <circle cx="537" cy="135" r="1.6" stroke="#4A4700"/>
+          <circle cx="544" cy="142" r="1.6" stroke="#4A4700"/>
+        </g>
+
+        <rect x="44" y="70" width="192" height="212" rx="8" fill="#FFFFFF"/>
+
+        <text class="b7aH" x="56" y="94">REAL ROWS</text>
+        <text class="b7aS" x="56" y="112">UCI Adult, 1994 US Census</text>
+        <text class="b7aL" x="56" y="140">32,561 people</text>
+        <text class="b7aS" x="56" y="164">age · sex · race</text>
+        <text class="b7aS" x="56" y="182">marital · education</text>
+        <text class="b7aS" x="56" y="200">country of birth</text>
+        <text class="b7aS" x="56" y="218">occupation · income band</text>
+        <text class="b7aS" x="56" y="262">eight columns kept</text>
+
+        <text class="b7aH" x="346" y="82">INDEPENDENT COLUMNS</text>
+        <text class="b7aS" x="346" y="102">each column drawn on its own</text>
+        <text class="b7aS" x="346" y="118">from its real distribution</text>
+        <text class="b7aS" x="346" y="146">copies no row on purpose</text>
+
+        <text class="b7aH" x="346" y="216">MEMORISING GENERATOR</text>
+        <text class="b7aS" x="346" y="236">copies one real row whole</text>
+        <text class="b7aS" x="346" y="252">nudges age by -2..+2</text>
+        <text class="b7aS" x="346" y="268">in half the copies</text>
+
+        <text class="b7aB" x="594" y="242">copy</text>
+
+        <text class="b7aH" x="666" y="82">SYNTHETIC ROWS</text>
+        <text class="b7aS" x="666" y="100">32,561 from each</text>
+        <text class="b7aS" x="666" y="116">generator, same columns</text>
+        <text class="b7aW" x="676" y="258">a real row, copied</text>
+
+        <text class="b7aN" x="30" y="330">Real rows; toy generators, built to show the two failure modes. Real generators sit somewhere in between.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - a generator is only as private as what it remembers, and only as useful as what it learned</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>What PDPC says synthetic data is for<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>A use case, not a technique.</strong> PDPC's Guide to Basic Anonymisation (2022) lists seven techniques in Annex A: record suppression, character masking, pseudonymisation, generalisation, swapping, data perturbation and data aggregation. Synthetic data is not one of them. It appears on page 17 as a use case: record-level synthetic data "can be created from the original data by heavily anonymising" it.</p>
+        <p><strong>Not for analysis.</strong> The same page says such data is "not suitable for sophisticated purposes such as AI model training or data analytics". PDPC sees it as test data: something that has the shape of the real file so a developer can build a pipeline against it, not something a researcher should draw conclusions from.</p>
+        <p><strong>From scratch is out of scope.</strong> Footnote 7 on page 17 says generating synthetic data "from scratch" is not addressed in the guide. A model that learns from the real file and writes new rows, which is what most synthetic-data tools do, is outside what the guide covers. Treat it as a release that needs its own test, which is what the rest of tonight builds.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>The disagreement you will meet<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Some vendors describe synthetic data as anonymous by construction: no synthetic row belongs to a real person, so there is nobody to re-identify. The argument has a real core, because a generator that learned only broad patterns writes rows nobody can be tied to. Its weak point is the word "only": nothing in the word "synthetic" says how much the generator remembered.</p>
+        <p>The research below found that, on the generators and data it tested, the privacy and the usefulness could not both be had. That is evidence about those generators, not a law about every possible one, and the field has not settled the question. The engineering norm that follows from both sides is the same: do not accept "it is synthetic" as a privacy argument, measure the file you are about to release. Whether a synthetic file is still personal data is a legal question; <a href="https://phoebefu6.github.io/learn-pdpa-dnc-with-phoebe/">PDPA and DNC ↗</a> and <a href="https://phoebefu6.github.io/learn-gdpr-with-phoebe/">GDPR ↗</a> own it.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Anonymisation Groundhog Day.</strong> Theresa Stadler, Bristena Oprisanu and Carmela Troncoso tested synthetic data generators against privacy attacks in "Synthetic Data - Anonymisation Groundhog Day" (arXiv 2011.07018; its text says a peer-reviewed version is published at USENIX Security 2022). Their finding: synthetic data either does not prevent inference attacks or does not retain data utility, so it offers no better tradeoff than traditional anonymisation, and where the tradeoff lands is hard to predict. Their phrase for it is "far from the holy grail" of privacy-preserving data publishing. The title is the point: the same lesson as every session before, arriving again under a new name.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers utility lost</span>
+      <h2>The safest generator erased the finding</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Pick one relationship a researcher would actually use and check it survives. Here it is the pay gap: the share of men earning over 50K minus the share of women. In the real rows, 30.6% of the 21,790 men and 10.9% of the 10,771 women are over 50K, a gap of 19.6 points. The independent-columns generator, which never copies a row, reports a gap of 0.2 points. The memorising generator reports 19.9.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 394" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three pairs of bars, the share of men and of women earning over 50K. Real rows: men 30.6 percent, women 10.9 percent, a gap of 19.6 points. Independent columns, drawn in plum: both bars near the overall share of 24.08 percent, a gap of 0.2 points. Memorising generator: shares close to the real ones, a gap of 19.9 points.">
+        <defs>
+          <filter id="b7bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="73" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b7bHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b7bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b7bH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b7bL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b7bS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b7bV { font: 800 16px Inter, sans-serif; fill: #4A4700; }
+          .b7bB { font: 800 16px Inter, sans-serif; fill: #5C1A33; }
+          .b7bA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .b7bN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b7bH" x="30" y="28">SHARE EARNING OVER 50K, MEN AND WOMEN, IN THE REAL ROWS AND IN EACH SYNTHETIC FILE</text>
+
+        <g filter="url(#b7bSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M70 300 L850 300" stroke="#57553F" stroke-width="1.4"/>
+          <path d="M70 300 L70 110" stroke="#57553F" stroke-width="1.4"/>
+          <rect x="90" y="125" width="70" height="175" rx="3" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="170" y="238" width="70" height="62" rx="3" fill="#D6D29A"/>
+          <rect x="350" y="162" width="70" height="138" rx="3" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="430" y="162" width="70" height="138" rx="3" fill="#FBEEF3" stroke="#8E2A4F"/>
+          <rect x="610" y="124" width="70" height="176" rx="3" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="690" y="238" width="70" height="62" rx="3" fill="#D6D29A"/>
+          <path d="M164 125 L256 125 M244 238 L256 238 M252 129 L252 234" stroke="#4A4700" stroke-width="1.6"/>
+          <path d="M684 124 L776 124 M764 238 L776 238 M772 128 L772 234" stroke="#4A4700" stroke-width="1.6"/>
+          <path d="M504 162 L516 162" stroke="#8E2A4F" stroke-width="1.6"/>
+          <!-- doodle: a magnifying glass looking for the missing gap -->
+          <circle cx="548" cy="220" r="11" stroke="#5C1A33"/>
+          <path d="M556 228 L566 238" stroke="#5C1A33"/>
+        </g>
+
+        <text class="b7bA" x="36" y="304">0%</text>
+        <text class="b7bA" x="30" y="133">30%</text>
+
+        <text class="b7bV" x="98" y="116">30.6%</text>
+        <text class="b7bV" x="178" y="229">10.9%</text>
+        <text class="b7bV" x="262" y="186">19.6</text>
+        <text class="b7bS" x="262" y="202">pts gap</text>
+
+        <text class="b7bS" x="350" y="150">both near 24.08%, the overall share</text>
+        <text class="b7bB" x="522" y="176">0.2</text>
+        <text class="b7bS" x="522" y="192">pts gap</text>
+
+        <text class="b7bS" x="610" y="112">shares close to the real ones</text>
+        <text class="b7bV" x="782" y="186">19.9</text>
+        <text class="b7bS" x="782" y="202">pts gap</text>
+
+        <text class="b7bL" x="104" y="318">men</text>
+        <text class="b7bL" x="178" y="318">women</text>
+        <text class="b7bL" x="364" y="318">men</text>
+        <text class="b7bL" x="438" y="318">women</text>
+        <text class="b7bL" x="624" y="318">men</text>
+        <text class="b7bL" x="698" y="318">women</text>
+
+        <text class="b7bH" x="90" y="342">REAL ROWS</text>
+        <text class="b7bS" x="90" y="358">21,790 men, 10,771 women</text>
+        <text class="b7bH" x="350" y="342">INDEPENDENT COLUMNS</text>
+        <text class="b7bS" x="350" y="358">the gap is gone</text>
+        <text class="b7bH" x="610" y="342">MEMORISING</text>
+        <text class="b7bS" x="610" y="358">the gap survives</text>
+
+        <text class="b7bN" x="30" y="384">Computed on the real rows. The memorising bars carry no labels: only their gap, 19.9, is in the record.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - drawing sex and income on their own makes them independent, so the gap a researcher came for disappears</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Why the gap vanished<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Independent draws, independent columns.</strong> The first generator picks a sex from the real mix of sexes and, separately, an income band from the real mix of income bands. Nothing links the two, so in the synthetic file men and women both land near the overall share of 24.08%. Every single column looks right, and every relationship between columns is gone.</p>
+        <p><strong>It is not only the pay gap.</strong> Education and income, age and marital status, occupation and sex: any pattern that lives between two columns is erased the same way. A researcher running a regression on this file gets clean-looking coefficients near zero and a wrong paper.</p>
+        <p><strong>The memorising generator keeps it for the worst reason.</strong> Its 19.9 is close to the real 19.6 because its rows are, mostly, the real rows. The relationship survives because the people survive.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Choosing the utility check<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>A utility check is only useful if it tests what the recipient will actually do. Ask the requester for the one or two analyses they plan, then compute the same statistic on the real rows and on the synthetic rows. Matching column histograms is the weakest possible check; the independent-columns toy passes it perfectly and fails every analysis that matters.</p>
+        <p>Pick relationships across columns, and include at least one that involves a small group, because generators tend to smooth small groups away first. Write the real value, the synthetic value and the difference in the release record. A file that fails the utility check is not a safe file that happens to be inconvenient: it is a file that will produce wrong findings with Brightwater's name on the data source.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Constructed Brightwater example</span>
+      <p><strong>The paper that found no gap.</strong> One of Brightwater's three university teams studies earnings by sex. Ravi Menon, the data engineer, offers them an independent-columns synthetic file as the quick safe option. Dr Hana Seow, the research director, runs the team's headline statistic on it first: 0.2 points instead of 19.6. The file would have been safe and the team's paper would have been wrong. The fix is not a better-looking synthetic file; it is a different route, such as generalised row-level data under agreement, which Engineer sessions 2 to 4 measured.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers memorised rows and the chance baseline</span>
+      <h2>An exact match is not a leak until it beats chance</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">The obvious privacy test is to count synthetic rows that are identical to a real row. Run it on the generator that copies nothing on purpose and the answer is not zero: 8,855 of 32,561 synthetic rows (27.2%) match some real row on all eight columns, and 2,183 of the 13,496 real people who are unique on those eight columns are reproduced exactly. All of that is chance. The memorising generator matches 26,987 rows (82.88%) and reproduces 6,818 unique people. The leak is the difference: 6,818 minus 2,183 is 4,635 unique people the generator remembered.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two horizontal bars out of 13,496 real people unique on eight columns. Independent columns reproduce 2,183 of them by chance, the chance baseline, drawn as hachure. The memorising generator reproduces 6,818: the first 2,183 drawn as hachure up to a dashed baseline line, and the excess of 4,635 shaded plum. Exact-match rates: 27.2 percent and 82.88 percent.">
+        <defs>
+          <filter id="b7cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="79" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b7cHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b7cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b7cH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b7cL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b7cS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b7cV { font: 800 16px Inter, sans-serif; fill: #4A4700; }
+          .b7cW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b7cA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .b7cN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b7cH" x="30" y="28">UNIQUE REAL PEOPLE REPRODUCED EXACTLY, OUT OF 13,496 UNIQUE ON EIGHT COLUMNS</text>
+
+        <g filter="url(#b7cSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="210" y="70" width="600" height="44" rx="6" transform="rotate(-0.3 510 92)" fill="#FFFFFF"/>
+          <rect x="210" y="70" width="97" height="44" rx="6" fill="url(#b7cHc)" stroke="#7A7600"/>
+          <rect x="210" y="150" width="600" height="44" rx="6" transform="rotate(0.3 510 172)" fill="#FFFFFF"/>
+          <rect x="210" y="150" width="97" height="44" rx="6" fill="url(#b7cHc)" stroke="#7A7600"/>
+          <rect x="307" y="150" width="206" height="44" rx="4" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <path d="M307 58 L307 208" stroke-dasharray="6 5" stroke-width="1.6"/>
+          <path d="M210 222 L810 222" stroke="#57553F" stroke-width="1.4"/>
+          <!-- doodle: a magnifying glass on the reproduced people -->
+          <circle cx="680" cy="172" r="11" stroke="#4A4700"/>
+          <path d="M688 180 L698 190" stroke="#4A4700"/>
+        </g>
+
+        <text class="b7cA" x="314" y="52">chance baseline 2,183</text>
+
+        <text class="b7cL" x="30" y="90">Independent columns</text>
+        <text class="b7cS" x="30" y="106">the chance baseline</text>
+        <text class="b7cV" x="318" y="98">2,183</text>
+        <text class="b7cS" x="374" y="97">reproduced by chance</text>
+
+        <text class="b7cL" x="30" y="170">Memorising generator</text>
+        <text class="b7cS" x="30" y="186">the trap</text>
+        <text class="b7cW" x="320" y="177">excess 4,635</text>
+        <text class="b7cV" x="524" y="178">6,818</text>
+        <text class="b7cS" x="580" y="177">reproduced</text>
+
+        <text class="b7cA" x="206" y="240">0</text>
+        <text class="b7cA" x="770" y="240">13,496</text>
+
+        <text class="b7cL" x="30" y="272">Synthetic rows identical to some real row: independent 27.2% (8,855), memorising 82.88% (26,987).</text>
+        <text class="b7cN" x="30" y="296">Without the baseline, 2,183 looks like a leak and 6,818 only three times worse.</text>
+        <text class="b7cN" x="30" y="316">With it, the copying generator's own contribution is 4,635 people: the plum, and nothing else.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the leak is the excess over what a generator that copies nothing would match anyway</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Why chance makes copies<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Common combinations are easy to hit.</strong> Most real rows sit in crowded combinations: white, US-born, high-school graduate, a common occupation. Draw each column at random from its real mix and you land on one of those crowded combinations often. That is why 27.2% of the independent file matches a real row without the generator remembering anyone.</p>
+        <p><strong>Even rare combinations get hit.</strong> A person unique on eight columns has a combination no one else shares, but it is built from values that are each common enough. With 32,561 random draws, 2,183 of the 13,496 unique combinations come up by chance.</p>
+        <p><strong>So measure against a baseline.</strong> Run a generator that cannot have memorised anyone, on the same columns and the same number of rows, and treat its counts as the floor. A real generator's counts above that floor are what it learned about specific people. The excess here is 4,635 unique people, roughly a third of everyone who was unique.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Three attacks, not one<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Stadler et al. evaluate synthetic data against three kinds of attack, and an exact-match count touches only the first. <strong>Linkage</strong>: can an outsider tie a synthetic row back to a real person, the attack of Engineer session 4. <strong>Membership inference</strong>: can an attacker tell whether a particular person was in the training data at all, which is itself a disclosure when the file is "people treated at this clinic". <strong>Attribute inference</strong>: knowing some of a person's columns, can an attacker guess a sensitive one better from the synthetic file than without it.</p>
+        <p>A generator can pass the exact-match test and still fail the other two, for example by writing near-copies with one column changed. The memorising toy does exactly that with age, and in this count its jittered copies already slip past an exact test. Treat exact matches as the cheap first screen, not the verdict.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Constructed Brightwater example</span>
+      <p><strong>"Realistic rows" for the hackathon.</strong> A partner university is running a student hackathon and asks Brightwater for "realistic rows" from the census extract. Ravi trains a generator and reports that 80-odd percent of its rows match a real row, which alarms Lim Su-Ann, the DPO. Before anyone decides, Ravi runs the independent-columns baseline: if the baseline also matched around a quarter of rows, then the excess, not the raw count, is the number Su-Ann needs. For a hackathon, PDPC's own framing fits: test data with the shape of the file, which is exactly what the low-utility baseline file is good for.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Test a synthetic file before release</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">Lim Su-Ann will not sign a synthetic release on the word "synthetic". She wants four numbers, each next to its baseline, and a decision. Run both generators in the widget, compute the excess, reproduce the first test in pandas on your own machine, then write the line that goes in the release record.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 244" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Five hand-drawn boxes joined by arrows: a synthetic file passes four tests before a decision. One, exact-match rate against the baseline. Two, unique people reproduced against the baseline, filled in plum. Three, a utility check on the relationship researchers need. Four, an attribute inference spot check. Five, decide: release, fix or refuse.">
+        <defs>
+          <filter id="b7dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="83" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b7dHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b7dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b7dH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b7dL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b7dS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b7dW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b7dV { font: 400 11px Inter, sans-serif; fill: #FFFFFF; }
+          .b7dN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b7dH" x="30" y="28">FOUR TESTS, EACH AGAINST ITS BASELINE, THEN ONE DECISION</text>
+
+        <g filter="url(#b7dSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="56" width="140" height="120" rx="12" transform="rotate(-1 100 116)" fill="#FFFFFF"/>
+          <rect x="204" y="56" width="140" height="120" rx="12" transform="rotate(0.8 274 116)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="378" y="56" width="140" height="120" rx="12" transform="rotate(-0.6 448 116)" fill="#FFFFFF"/>
+          <rect x="552" y="56" width="140" height="120" rx="12" transform="rotate(0.9 622 116)" fill="#FFFFFF"/>
+          <rect x="726" y="56" width="124" height="120" rx="12" transform="rotate(-0.8 788 116)" fill="#F7F6E4" stroke="#7A7600"/>
+          <path d="M174 116 L198 116" marker-end="url(#b7dAr)"/>
+          <path d="M348 116 L372 116" marker-end="url(#b7dAr)"/>
+          <path d="M522 116 L546 116" marker-end="url(#b7dAr)"/>
+          <path d="M696 116 L720 116" marker-end="url(#b7dAr)"/>
+          <!-- doodle: a tick on the decision box -->
+          <path d="M770 196 L782 208 L806 184" stroke="#4A4700"/>
+        </g>
+
+        <text class="b7dL" x="46" y="86">1 · Copies</text>
+        <text class="b7dS" x="46" y="106">exact-match rate</text>
+        <text class="b7dS" x="46" y="122">against the</text>
+        <text class="b7dS" x="46" y="138">baseline</text>
+        <text class="b7dW" x="220" y="86">2 · Uniques</text>
+        <text class="b7dV" x="220" y="106">unique people</text>
+        <text class="b7dV" x="220" y="122">reproduced vs</text>
+        <text class="b7dV" x="220" y="138">the baseline</text>
+        <text class="b7dL" x="394" y="86">3 · Utility</text>
+        <text class="b7dS" x="394" y="106">the relationship</text>
+        <text class="b7dS" x="394" y="122">researchers need,</text>
+        <text class="b7dS" x="394" y="138">real vs synthetic</text>
+        <text class="b7dL" x="568" y="86">4 · Inference</text>
+        <text class="b7dS" x="568" y="106">guess a sensitive</text>
+        <text class="b7dS" x="568" y="122">value from the</text>
+        <text class="b7dS" x="568" y="138">quasi-identifiers</text>
+        <text class="b7dL" x="740" y="86">5 · Decide</text>
+        <text class="b7dS" x="740" y="106">release, fix</text>
+        <text class="b7dS" x="740" y="122">or refuse</text>
+
+        <text class="b7dN" x="30" y="228">Tests 1 and 2 need the baseline generator to mean anything. Test 3 can sink a file that passes the first two.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - a synthetic file earns a release decision the same way any other file does: by measurement</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Step 1 · Run the independent-columns generator.</strong> It is selected when the widget loads. Record the four numbers the widget prints. This file is your baseline: a generator that cannot have remembered anyone.</p>
+        <div data-pe="syn" id="b7-syn"></div>
+        <div class="prompt-box good"><span class="label">★ Step 1 · the baseline</span>generator:                       independent columns
+synthetic rows identical to real: 27.2%   (8,855 of 32,561)
+unique real people reproduced:    2,183   of 13,496
+pay gap, real rows:               19.6 pts
+pay gap, synthetic rows:          0.2 pts</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 2 · Run the memorising generator.</strong> Pick "Memorising generator" and record the same four numbers. Notice that it looks better on utility and worse on everything else.</p>
+        <div class="prompt-box good"><span class="label">★ Step 2 · the trap</span>generator:                       memorising (copies a row, jitters age in half)
+synthetic rows identical to real: 82.88%  (26,987 of 32,561)
+unique real people reproduced:    6,818   of 13,496
+pay gap, real rows:               19.6 pts
+pay gap, synthetic rows:          19.9 pts</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 3 · Compute the excess over the baseline.</strong> Subtract the baseline from the memorising numbers and say in one sentence what the result means. This subtraction is the whole of tonight's lesson in one line.</p>
+        <div class="prompt-box good"><span class="label">★ Step 3 · the excess</span>unique people, memorising:   6,818
+unique people, baseline:     2,183   (chance alone)
+excess:                      4,635   unique real people the generator remembered
+meaning: ____________________________________________________________
+Brightwater: about a third of the 13,496 people who were unique in the
+file are back, exactly, in a file described as "synthetic".</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 4 · The first test in pandas.</strong> Run this on your own machine next to the public file (archive.ics.uci.edu, dataset 2, adult.zip). It builds an independent-columns file with numpy's seeded generator and counts how many synthetic rows are identical to a real row on the eight columns. The output below is pasted from a real run (pandas 2.1.4, numpy 1.26.4, seed 7). Its numbers differ from the widget's because the random generator differs; they land within about 120 rows of the widget's 8,855 copies and within a handful of its 2,183 unique people.</p>
+        <div class="prompt-box good"><span class="label">★ Step 4 · pandas, seeded</span>import numpy as np
+import pandas as pd
+
+cols = ["age", "workclass", "fnlwgt", "education", "education_num", "marital", "occupation",
+        "relationship", "race", "sex", "capital_gain", "capital_loss", "hours", "country", "income"]
+df = pd.read_csv("adult.data", names=cols, skipinitialspace=True)
+keep = ["age", "sex", "race", "marital", "education", "country", "occupation", "income"]
+real = df[keep]
+
+# independent columns: every column drawn on its own from its real values
+rng = np.random.default_rng(7)
+n = len(real)
+syn = pd.DataFrame({c: real[c].to_numpy()[rng.integers(0, n, n)] for c in keep})
+
+real_counts = real.value_counts()
+hits = syn.merge(real_counts.rename("n_real").reset_index(), on=keep, how="left")
+copies = hits["n_real"].notna().sum()
+unique_real = real_counts[real_counts == 1].index
+syn_keys = set(map(tuple, syn.to_numpy()))
+reproduced = sum(1 for k in unique_real if k in syn_keys)
+print(f"synthetic rows identical to a real row: {copies:,} ({100 * copies / n:.2f}%)")
+print(f"unique real rows reproduced: {reproduced:,} of {len(unique_real):,}")
+
+# output of a real run:
+# synthetic rows identical to a real row: 8,733 (26.82%)
+# unique real rows reproduced: 2,185 of 13,496</div>
+        <p>Read the pattern, not the digits. Both runs agree that roughly a quarter of a copy-nothing file matches real rows and that about 2,200 unique people come back by chance; and both find the same 13,496 unique people in the real file, because that part involves no randomness. To test a real generator, load its output as <code>syn</code> and run the same lines; then run this baseline next to it and report the difference.</p>
+      </div>
+      <div class="step">
+        <p><strong>Step 5 · Write the synthetic line for the release record.</strong> Su-Ann signs this, so every number sits next to its baseline. The fourth test has no number in the widget: describe how you ran it and what it found. Engineer session 8 puts this line in the full record.</p>
+        <div class="prompt-box good"><span class="label">★ Step 5 · the synthetic line</span>generator:        ______________ (name, version, what it was trained on)
+baseline:         independent columns, same eight columns, same row count
+copies:           ____% identical to a real row   (baseline 27.2%)
+uniques:          ____ of 13,496 reproduced       (baseline 2,183; excess ____)
+utility check:    pay gap ____ pts                (real 19.6)
+inference check:  __________________________________________________
+decision:         release / fix / refuse, because ____________________
+Brightwater, memorising toy: 82.88% vs 27.2%; 6,818 vs 2,183 (excess 4,635);
+gap 19.9 vs 19.6. Decision: refuse; it is the real file with age jittered.</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>Keep the baseline script.</strong> The baseline costs nothing to run and changes with the columns, so re-run it whenever the column list or the row count changes. A synthetic count reported without its baseline is a number nobody can interpret, in either direction.</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>Before Engineer session 8</h2>
+      <span class="tag exercise">30 min</span>
+    </div>
+    <ol>
+      <li><strong>Run the baseline on fewer columns.</strong> Drop occupation and income from <code>keep</code> and re-run the pandas script. Write down whether the chance match rate rises or falls, and explain why in one sentence.</li>
+      <li><strong>Write a utility check for one partner.</strong> Pick one of Brightwater's three university teams, name the analysis they would run, and write the statistic you would compare on real and synthetic rows.</li>
+      <li><strong>Design the attribute inference spot check.</strong> Using the synthetic file, describe how an attacker who knows a person's six quasi-identifiers would guess their occupation, and what you would compare the guess rate against.</li>
+      <li><strong>Find one synthetic claim.</strong> Find a product page or internal proposal that calls synthetic data anonymous. List which of the four tests it reports, and which it does not.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Engineer session 7 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · What does PDPC's Guide to Basic Anonymisation (2022) say about record-level synthetic data made by heavy anonymisation?</p>
+      <button class="qopt" type="button">A · It is the recommended technique for any release to researchers</button>
+      <button class="qopt" type="button">B · It is anonymous by construction and needs no further test</button>
+      <button class="qopt" type="button">C · It is not suitable for sophisticated purposes such as AI model training or data analytics</button>
+      <button class="qopt" type="button">D · It is one of the seven techniques in Annex A</button>
+      <p class="qwhy">PDPC treats synthetic data as a use case on page 17, not an Annex A technique, and says it is not suitable for AI training or analytics. Generating it from scratch is outside the guide (footnote 7).</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">2 · The independent-columns generator copies no row on purpose, yet reproduces 2,183 of 13,496 unique real people exactly. What does that tell you about an exact-match test?</p>
+      <button class="qopt" type="button">A · An exact match alone is not proof of a leak; the leak is the excess over a chance baseline</button>
+      <button class="qopt" type="button">B · The independent-columns generator is leaking 2,183 people</button>
+      <button class="qopt" type="button">C · Exact-match tests are useless and should be dropped</button>
+      <button class="qopt" type="button">D · Any synthetic file with fewer than 2,183 matches is safe</button>
+      <p class="qwhy">Chance alone produces 2,183. Against that baseline, the memorising generator's 6,818 means 4,635 people were remembered; without the baseline neither number can be read.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="3">
+      <p class="qtext">3 · The real pay gap is 19.6 points. The independent-columns file shows 0.2 and the memorising file shows 19.9. What does this show?</p>
+      <button class="qopt" type="button">A · The memorising generator is the better choice for research</button>
+      <button class="qopt" type="button">B · The pay gap in the census rows is not real</button>
+      <button class="qopt" type="button">C · Both generators are fine, because each column's distribution matches</button>
+      <button class="qopt" type="button">D · The generator that copies least destroyed the relationship researchers need, and the one that kept it did so by copying people</button>
+      <p class="qwhy">Drawing columns independently erases every relationship between them. The memorising file keeps the gap because its rows are mostly the real rows, which is the privacy failure from Part 3.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Synthetic data as a use case (p17), "not suitable" for AI training or analytics; from-scratch generation out of scope (fn 7); the seven Annex A techniques</span><span class="note">PDPC, Guide to Basic Anonymisation (2022), read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Synthetic data "far from the holy grail"; no better tradeoff than traditional anonymisation; linkage, membership and attribute inference evaluated</span><span class="note">Stadler, Oprisanu and Troncoso, "Synthetic Data - Anonymisation Groundhog Day", arXiv 2011.07018, read at source</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Published at USENIX Security 2022</span><span class="note">Stated in the arXiv text's footnote; proceedings page not opened</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">Exact matches 8,855 (27.2%) and 26,987 (82.88%); unique reproduced 2,183 and 6,818 of 13,496; pay gap 19.6, 0.2 and 19.9; men 21,790 at 30.6%, women 10,771 at 10.9%; overall 24.08%</span><span class="note">UCI Adult, Becker and Kohavi 1996, CC BY 4.0; computed by the engine and the reference script, which agree</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">pandas baseline run: 8,733 (26.82%) and 2,185 of 13,496</span><span class="note">A real run of the Step 4 code on the same file, pandas 2.1.4, numpy 1.26.4, seed 7</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Whether synthetic data is anonymous by construction</span><span class="note">Contested; taught as a disagreement, no vendor named</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Brightwater, the pay-gap team, the hackathon request, Dr Hana Seow, Ravi Menon and Lim Su-Ann</span><span class="note">Constructed and labelled</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Engineer session 7 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>PDPC's view</b><span>A use case for test data, not an analysis file; from-scratch generation is outside the guide.</span></div>
+      <div class="cheat-item"><b>Two failure modes</b><span>Learn too little and utility dies; learn too much and the rows are real people.</span></div>
+      <div class="cheat-item"><b>Utility check</b><span>Test the relationship the recipient needs. Pay gap 19.6 became 0.2.</span></div>
+      <div class="cheat-item"><b>Chance baseline</b><span>A copy-nothing generator still matches 27.2% of rows and 2,183 unique people.</span></div>
+      <div class="cheat-item"><b>The leak is the excess</b><span>6,818 minus 2,183 is 4,635 unique people remembered.</span></div>
+      <div class="cheat-item"><b>Three attacks</b><span>Linkage, membership inference, attribute inference. Exact matches screen only the first.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>You can test a synthetic file against its baseline and write its line for the record. Engineer session 8, The Release Desk, puts every measurement from the track on one screen: the ladder from pseudonymised to heavily generalised, the linkage attack, the break when an undeclared column is published, and the release record that carries all of it.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Engineer session 7 of 8 · learn-privacy-engineering-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b6-spending-a-privacy-budget.html">← Prev: Spending a privacy budget</a> &nbsp;·&nbsp; <a href="b8-the-release-desk.html">Next: The Release Desk →</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/pe-data.js?v=1"></script>
+<script src="../assets/pe-engine.js?v=1"></script>
+<script src="../assets/pe-desk.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>

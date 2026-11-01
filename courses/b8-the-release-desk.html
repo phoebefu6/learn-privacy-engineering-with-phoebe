@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- social:start -->
+<meta name="description" content="Engineer session 8 of 8. The Release Desk: six presets from pseudonymised to heavy, live k, l, t, suppression and a linkage attack on 32,561 real census rows, a break button for the forgotten column, and a release record you can sign.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Learn with Phoebe">
+<meta property="og:title" content="The Release Desk - learn privacy engineering with phoebe">
+<meta property="og:description" content="Engineer session 8 of 8. From 175 single-row matches to 0, and back to 22 when one column slips out. The bench, on real rows.">
+<meta property="og:url" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/courses/b8-the-release-desk.html">
+<meta property="og:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The Release Desk - learn privacy engineering with phoebe">
+<meta name="twitter:description" content="Engineer session 8 of 8. The ladder, the trap preset, the break button and the release record.">
+<meta name="twitter:image" content="https://phoebefu6.github.io/learn-privacy-engineering-with-phoebe/assets/og-cover.png">
+<!-- social:end -->
+<title>Engineer session 8 · The Release Desk - learn privacy engineering with phoebe</title>
+<link rel="stylesheet" href="../assets/style.css?v=2">
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="wrap">
+    <span class="crumb"><a href="../index.html">learn-privacy-engineering-with-phoebe</a> / Engineer session 8 of 8</span>
+    <button class="btn" id="toggle-all" type="button">Expand all</button>
+    <button class="btn primary" id="zoom-toggle" type="button">Projector zoom: off</button>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Learn Privacy Engineering with Phoebe · Engineer session 8 of 8</div>
+    <h1>The <span class="accent">Release Desk</span></h1>
+    <p class="sub">Seven sessions of parts, one screen. The Release Desk takes the 32,561 real rows, lets you choose how coarse each column goes out and the smallest class you will publish, and recomputes everything at once: the share of people alone, k, l and t, the rows you withheld, and a linkage attack by an outsider who knows six facts about 1,000 people in the file. Tonight: the ladder of six presets, the trap at the bottom of it, the break button that undoes a clean result, and the release record Brightwater signs.</p>
+    <div class="chip-row">
+      <span class="chip level">🔴 Engineer · bench night</span>
+      <span class="chip audience">Data engineers and analysts who prepare a release, and the DPO who signs it</span>
+      <span class="chip audience">In the browser, no install</span>
+      <span class="chip time">45 min</span>
+    </div>
+    <div class="agenda">
+      <span class="a1" style="flex:1">0-3 · Welcome</span>
+      <span class="a2" style="flex:4">3-18 · Ladder, trap, break</span>
+      <span class="a3" style="flex:5">18-40 · Build-along: the release record</span>
+      <span class="a4" style="flex:1">40-45 · Q&amp;A</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="intro">
+    <div class="section-kicker">
+      <span class="klabel">Part 0</span>
+      <h2>Where we start</h2>
+    </div>
+    <p class="lede">The bench closes the Engineer track. Sessions 1 to 4 built the pieces it computes: quasi-identifiers, generalisation and suppression, l and t, the linkage attack. Sessions 5 to 7 covered the two other tools, noise and synthetic rows; their widgets live on those pages, and tonight's record says when a release should use them instead. Brightwater Social Research Institute and its partner request are constructed; the rows are 32,561 real people from the UCI Adult census extract, and every number below is computed in your browser as you click.</p>
+
+    <div class="legend">
+      <span class="pill">🎫 Clear all three quiz questions to stamp your passport</span>
+      <span class="pill">Live = presented in the 45 minutes</span>
+      <span class="pill">Self-study = the full depth, after class</span>
+      <span class="pill">★ Build-along = everyone works it through</span>
+    </div>
+
+    <div class="callout win">
+      <p><strong>★ What you walk out with tonight.</strong> A release setting for Brightwater's extract that survives the linkage attack, with its k, l, t, suppression and precision written down; the break test run against it; and a one-page release record that a second engineer could re-run from scratch and get the same numbers.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-1">
+    <div class="section-kicker">
+      <span class="klabel">Part 1 · covers the ladder</span>
+      <h2>Six presets, from pseudonymised to heavy</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Read the ladder top to bottom before touching a control. Each rung changes one thing. The first is what most organisations send: names gone, everything else exact. The second coarsens age. The third coarsens five columns. The fourth and fifth suppress every class under 5 and under 10. The sixth generalises harder so that fewer rows need suppressing at all.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 350" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn ladder of six bars, the expected number of re-identifications among 1,000 people an outsider knows, computed on the real rows. Pseudonymise only: 272.5 expected, 175 single-row matches. Age in 10-year bands: 129.6 expected, 85 single matches. Coarsen five columns: 29.0, 6 single. Same with k 5: 16.7, 0 single, 2.23 percent of rows suppressed. Same with k 10: 10.8, 0 single, 5.53 percent suppressed. Heavy with k 10: 4.4, 0 single, 1.06 percent suppressed. The first bar is plum, the trap.">
+        <defs>
+          <filter id="b8aSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b8aHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b8aAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b8aH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b8aL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b8aS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b8aV { font: 800 16px Inter, sans-serif; fill: #4A4700; }
+          .b8aB { font: 800 16px Inter, sans-serif; fill: #5C1A33; }
+          .b8aN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+          .b8aX { font: 600 11px Inter, sans-serif; fill: #FFFFFF; }
+        </style>
+
+        <text class="b8aH" x="30" y="28">EXPECTED RE-IDENTIFICATIONS AMONG 1,000 PEOPLE THE OUTSIDER KNOWS</text>
+
+        <g filter="url(#b8aSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M260 52 L260 316" stroke="#57553F" stroke-width="1.4"/>
+          <rect x="262" y="56" width="545" height="30" rx="6" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="262" y="100" width="259" height="30" rx="6" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="262" y="144" width="58" height="30" rx="6" fill="#7A7600" stroke="#7A7600"/>
+          <rect x="262" y="188" width="33" height="30" rx="6" fill="url(#b8aHc)" stroke="#7A7600"/>
+          <rect x="262" y="232" width="22" height="30" rx="6" fill="url(#b8aHc)" stroke="#7A7600"/>
+          <rect x="262" y="276" width="9" height="30" rx="4" fill="url(#b8aHc)" stroke="#7A7600"/>
+        </g>
+
+        <text class="b8aL" x="30" y="70">1 · Pseudonymise only</text>
+        <text class="b8aS" x="30" y="84">names gone, rest exact</text>
+        <text class="b8aL" x="30" y="114">2 · Age in 10-year bands</text>
+        <text class="b8aS" x="30" y="128">one column coarsened</text>
+        <text class="b8aL" x="30" y="158">3 · Coarsen five columns</text>
+        <text class="b8aS" x="30" y="172">nothing suppressed</text>
+        <text class="b8aL" x="30" y="202">4 · Same, k = 5</text>
+        <text class="b8aS" x="30" y="216">2.23% of rows withheld</text>
+        <text class="b8aL" x="30" y="246">5 · Same, k = 10</text>
+        <text class="b8aS" x="30" y="260">5.53% of rows withheld</text>
+        <text class="b8aL" x="30" y="290">6 · Heavy, k = 10</text>
+        <text class="b8aS" x="30" y="304">1.06% of rows withheld</text>
+
+        <text class="b8aB" x="816" y="77">272.5</text>
+        <text class="b8aV" x="530" y="121">129.6</text>
+        <text class="b8aS" x="610" y="121">85 single-row matches</text>
+        <text class="b8aV" x="330" y="165">29.0</text>
+        <text class="b8aS" x="380" y="165">6 single-row matches</text>
+        <text class="b8aV" x="304" y="209">16.7</text>
+        <text class="b8aS" x="354" y="209">0 single-row matches</text>
+        <text class="b8aV" x="294" y="253">10.8</text>
+        <text class="b8aS" x="344" y="253">0 single-row matches</text>
+        <text class="b8aV" x="280" y="297">4.4</text>
+        <text class="b8aS" x="320" y="297">0 single-row matches</text>
+        <text class="b8aX" x="560" y="77">175 single-row matches</text>
+
+        <text class="b8aN" x="30" y="338">Computed on the real rows. Expected = the sum of 1 / class size over the 1,000 people; 1 means a certain match.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the biggest drop is the first coarsening, not the suppression that follows it</figcaption>
+    </figure>
+
+    <details class="card" open>
+      <summary><span class="mode live">Live</span>Two numbers for risk, one for usefulness<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>Single-row matches</strong> count the people the outsider can point at with certainty: their six facts lead to exactly one released row. 175 on the pseudonymised file, 0 from rung 4.</p>
+        <p><strong>Expected re-identifications</strong> add up each person's chance of being guessed: 1 for a class of one, 0.2 for a class of five. It never reaches 0 while any of the 1,000 people are in the file, which is the honest point. Anonymisation lowers the risk; it does not delete it.</p>
+        <p><strong>Precision kept</strong> is the usefulness side: 100% when every column is exact, 61% at rungs 3 to 5, 51% at rung 6. A risk number without a usefulness number invites a release nobody can use; show both.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Why rung 6 suppresses fewer rows than rung 5<span class="mini">2 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>Rung 5 keeps 10-year age bands and five education levels and withholds every class under 10: 1,801 rows, 5.53% of the file. Rung 6 widens age to 20-year bands and education to degree yes or no; the classes grow so much that only 345 rows, 1.06%, sit in a class under 10. Generalising harder and suppressing less is often the better trade, because suppression removes whole people and removes them unevenly: the rare combinations, the minorities and migrants, go first. Check who you withheld before you call a release representative.</p>
+      </div>
+    </details>
+  </section>
+
+  <section class="section" id="part-2">
+    <div class="section-kicker">
+      <span class="klabel">Part 2 · covers the trap preset and the bar</span>
+      <h2>A bench that can say no</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Two rungs fail in ways worth naming. Rung 1 is the trap: removing direct identifiers changes none of the risk numbers, because names were never in the quasi-identifiers. Rung 4 reaches k = 5 and still fails the diversity test: at least one published class has a single occupation, so anyone placed in it has their job revealed. The desk marks both, and its verdict only turns green when k, l and suppression all clear its bar.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two hand-drawn panels. Left, red panel, the trap: a file before and after names are removed; every risk number is the same, 17.18 percent unique, 175 single-row matches. Right panel: a published class of five rows that all share one occupation, drawn in plum; k is 5 and l is 1, so the occupation of anyone known to be in the class is revealed. Below, the desk's bar: k at least 10, l at least 3, under 5 percent of rows suppressed, marked as this desk's rule of thumb.">
+        <defs>
+          <filter id="b8bSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="13" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b8bHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b8bAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b8bH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b8bL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b8bS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b8bR { font: 700 11px Inter, sans-serif; fill: #991B1B; }
+          .b8bW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b8bV { font: 400 11px Inter, sans-serif; fill: #FFFFFF; }
+          .b8bA { font: 700 11px Inter, sans-serif; fill: #4A4700; }
+          .b8bN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b8bH" x="30" y="28">TWO WAYS A RELEASE LOOKS FINE AND IS NOT</text>
+
+        <g filter="url(#b8bSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="48" width="390" height="180" rx="12" transform="rotate(-0.4 225 138)" fill="#FEF2F2" stroke="#FCA5A5"/>
+          <rect x="50" y="96" width="150" height="80" rx="8" transform="rotate(-1 125 136)" fill="#FFFFFF"/>
+          <rect x="250" y="96" width="150" height="80" rx="8" transform="rotate(1 325 136)" fill="#FFFFFF"/>
+          <path d="M206 136 L244 136" marker-end="url(#b8bAr)"/>
+          <rect x="460" y="48" width="390" height="180" rx="12" transform="rotate(0.4 655 138)" fill="#F7F6E4" stroke="#7A7600"/>
+          <rect x="480" y="96" width="350" height="110" rx="8" transform="rotate(-0.5 655 151)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <rect x="30" y="246" width="820" height="40" rx="10" transform="rotate(0.2 440 266)" fill="url(#b8bHc)"/>
+        </g>
+
+        <rect x="40" y="252" width="800" height="28" rx="6" fill="#FFFFFF"/>
+
+        <text class="b8bR" x="48" y="72">RUNG 1 · THE TRAP</text>
+        <text class="b8bS" x="48" y="88">remove names and IDs, keep the rest</text>
+        <text class="b8bL" x="62" y="118">before</text>
+        <text class="b8bS" x="62" y="140">17.18% unique</text>
+        <text class="b8bS" x="62" y="158">175 single matches</text>
+        <text class="b8bL" x="262" y="118">after</text>
+        <text class="b8bS" x="262" y="140">17.18% unique</text>
+        <text class="b8bS" x="262" y="158">175 single matches</text>
+        <text class="b8bS" x="48" y="208">names were never what identified anyone</text>
+
+        <text class="b8bH" x="478" y="72">RUNG 4 · k = 5, l = 1</text>
+        <text class="b8bS" x="478" y="88">every class has 5 or more rows</text>
+        <text class="b8bW" x="496" y="120">one published class, 5 rows</text>
+        <text class="b8bV" x="496" y="142">same banded age, sex, race, marital,</text>
+        <text class="b8bV" x="496" y="158">education group and birthplace</text>
+        <text class="b8bW" x="496" y="182">all 5 share one occupation</text>
+
+        <text class="b8bA" x="52" y="271">THE DESK'S BAR, A RULE OF THUMB: k at least 10 · l at least 3 · under 5% of rows suppressed · and the break test passes</text>
+
+        <text class="b8bN" x="30" y="308">Computed on the real rows. The bar is this desk's teaching threshold; your release context sets your own.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - a desk that can only say yes measures nothing; this one says no twice before it says yes</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>Why rung 4's attack still finds 0 revealed jobs<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>At rung 4, 5 rows sit in classes with a single occupation, and none of the outsider's 1,000 people happens to be among them, so the attack counter reads 0. The l counter reads 1 anyway, because l is computed over every published class, not over a sample. That is why both exist: the attack tells you what one realistic outsider achieves, the property tells you what the worst-placed person faces. A release review that reads only the attack sample misses the people it did not sample.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><span class="mode self">Self-study</span>Where the bar comes from, and why it is contested<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p>There is no single correct k. PDPC's guidelines set a minimum k of 5 for sharing with external parties and 3 for internal sharing with controls (Selected Topics, para 3.9), and allow other methods that show a similar or lower risk. The research literature argues that any fixed k ignores what the outsider already knows. The desk's bar, k at least 10, l at least 3, under 5% suppressed, is a teaching threshold chosen to make the trade visible on these rows, not a standard. A public release with no controls on the recipient warrants a stricter setting than a file sent to three named researchers under contract; Leader session 2 covers how the route changes the number, and Leader session 4 how to write the number you chose and why.</p>
+      </div>
+    </details>
+
+    <div class="callout example">
+      <span class="ex-pill">Real world</span>
+      <p><strong>Ratings with no names.</strong> In 2006 Netflix released the movie ratings of about 500,000 subscribers, names replaced by numbers, for a public prediction prize. Narayanan and Shmatikov showed that 8 ratings, 2 of which could be wrong, with dates known to within 14 days, were enough to single out 99% of the records; with IMDb reviews as the outsider's knowledge they found known users. It was the trap rung at scale: the pseudonym was never the protection, and the ratings themselves were the quasi-identifiers.</p>
+    </div>
+  </section>
+
+  <section class="section" id="part-3">
+    <div class="section-kicker">
+      <span class="klabel">Part 3 · covers the break button</span>
+      <h2>The column you forgot to declare</h2>
+      <span class="tag concept">5 min live</span>
+    </div>
+    <p class="lede">Every number on the desk is computed over the columns you declared as quasi-identifiers. Publish one more column without declaring it, and k is still reported as 5, while the outsider joins on it and splits your classes again. The break button does exactly that with workclass: the file goes out with it, the k calculation never sees it.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn diagram. On the left, the six declared quasi-identifiers in a box labelled what k was computed on. Below it, workclass, published exact but never declared, drawn in plum. Both feed an arrow into the outsider's join. On the right, the results at rung 4: as declared, k 5, 0 single-row matches, 16.7 expected re-identifications. With workclass joined: 22 single-row matches, 73.5 expected, 89 people whose occupation is revealed.">
+        <defs>
+          <filter id="b8cSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="19" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b8cHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b8cAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b8cH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b8cL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b8cS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b8cV { font: 800 16px Inter, sans-serif; fill: #4A4700; }
+          .b8cW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b8cX { font: 800 16px Inter, sans-serif; fill: #FFFFFF; }
+          .b8cN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b8cH" x="30" y="28">k IS ONLY TRUE FOR THE COLUMNS YOU DECLARED</text>
+
+        <g filter="url(#b8cSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="52" width="300" height="130" rx="12" transform="rotate(-0.6 180 117)" fill="url(#b8cHc)"/>
+          <rect x="30" y="200" width="300" height="60" rx="12" transform="rotate(0.8 180 230)" fill="#8E2A4F" stroke="#8E2A4F"/>
+          <path d="M336 120 Q380 150 410 158" marker-end="url(#b8cAr)"/>
+          <path d="M336 228 Q380 200 410 170" marker-end="url(#b8cAr)"/>
+          <circle cx="440" cy="164" r="26" fill="#FFFFFF"/>
+          <path d="M470 164 L500 164" marker-end="url(#b8cAr)"/>
+          <rect x="510" y="52" width="340" height="96" rx="12" transform="rotate(0.5 680 100)" fill="#FFFFFF"/>
+          <rect x="510" y="166" width="340" height="96" rx="12" transform="rotate(-0.5 680 214)" fill="#8E2A4F" stroke="#8E2A4F"/>
+        </g>
+
+        <rect x="42" y="64" width="276" height="106" rx="8" fill="#FFFFFF"/>
+
+        <text class="b8cH" x="54" y="86">DECLARED, k COMPUTED ON THESE</text>
+        <text class="b8cL" x="54" y="110">age band · sex · race group</text>
+        <text class="b8cL" x="54" y="130">marital group · education level</text>
+        <text class="b8cL" x="54" y="150">birthplace group</text>
+        <text class="b8cW" x="48" y="226">workclass, published exact</text>
+        <text class="b8cW" x="48" y="244">never declared</text>
+        <text class="b8cL" x="424" y="168">join</text>
+
+        <text class="b8cH" x="528" y="76">RUNG 4, AS DECLARED</text>
+        <text class="b8cV" x="528" y="104">k 5 · 0 single matches</text>
+        <text class="b8cS" x="528" y="126">16.7 expected re-identifications</text>
+        <text class="b8cW" x="528" y="190">RUNG 4, WORKCLASS JOINED</text>
+        <text class="b8cX" x="528" y="218">22 single matches</text>
+        <text class="b8cW" x="528" y="240">73.5 expected · 89 jobs revealed</text>
+
+        <text class="b8cN" x="30" y="300">Computed on the real rows. The desk still prints k = 5 after the break: the number was never wrong, only incomplete.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the break does not touch k; it touches the list of columns k was computed on</figcaption>
+    </figure>
+
+    <details class="card">
+      <summary><span class="mode live">Live</span>How the forgotten column happens<span class="mini">3 min</span><span class="caret">▶</span></summary>
+      <div class="body">
+        <p><strong>A late request.</strong> A partner asks for "just one more column" after the review. It ships without the climb being re-run.</p>
+        <p><strong>A column that looked sensitive, not identifying.</strong> Workclass looks like an attribute of the job. A colleague knows whether you work for the government.</p>
+        <p><strong>Two releases.</strong> The same people go out in a second file with different columns. Joined together, the two files declare more than either one. Engineer session 4 runs that attack on purpose.</p>
+        <p>The fix is procedural, not mathematical: the release record lists every published column and states for each one whether it was declared, and the desk is re-run on the final column list, not the reviewed one.</p>
+      </div>
+    </details>
+  </section>
+
+  <section class="section" id="demo-1">
+    <div class="section-kicker">
+      <span class="klabel">Build-along</span>
+      <h2>Find a release Brightwater can sign</h2>
+      <span class="tag demo">★ 22 min · everyone builds</span>
+    </div>
+    <p class="lede">Lim Su-Ann, Brightwater's data protection officer, will sign the release only with a record she can hand to someone else. Ravi Menon runs the desk. Work through the ladder, find your own setting that clears the bar, run the break, and fill in the record. The desk starts on rung 1.</p>
+
+    <figure class="zoomable">
+      <svg viewBox="0 0 880 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A hand-drawn release record with five fields: columns published and whether each was declared, the setting per column and k, the measured results k, l, t, suppression, precision and the attack, the break test result, and the signature with the date the release must be reviewed again. The results field is filled in olive.">
+        <defs>
+          <filter id="b8dSk" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="23" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <pattern id="b8dHc" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-38)"><line x1="0" y1="0" x2="0" y2="7" stroke="#7A7600" stroke-width="1" opacity=".5"/></pattern>
+          <marker id="b8dAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#23220E" stroke-width="1.6" stroke-linecap="round"/></marker>
+        </defs>
+        <style>
+          .b8dH { font: 800 12px Inter, sans-serif; fill: #23220E; }
+          .b8dL { font: 600 12px Inter, sans-serif; fill: #23220E; }
+          .b8dS { font: 400 11px Inter, sans-serif; fill: #57553F; }
+          .b8dW { font: 800 12px Inter, sans-serif; fill: #FFFFFF; }
+          .b8dV { font: 400 11px Inter, sans-serif; fill: #FFFFFF; }
+          .b8dN { font: 400 12px Inter, sans-serif; fill: #57553F; }
+        </style>
+
+        <text class="b8dH" x="30" y="28">THE RELEASE RECORD, ONE PAGE</text>
+
+        <g filter="url(#b8dSk)" fill="none" stroke="#23220E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="48" width="820" height="160" rx="12" transform="rotate(-0.3 440 128)" fill="#FFFFFF"/>
+          <path d="M194 56 L194 200 M358 56 L358 200 M522 56 L522 200 M686 56 L686 200" stroke="#57553F" stroke-width="1.4"/>
+          <rect x="364" y="62" width="152" height="132" rx="8" fill="#7A7600" stroke="#7A7600"/>
+          <!-- doodle: a pen nib in the signature column -->
+          <path d="M790 170 L806 150 L816 158 L800 178 Z" stroke="#4A4700"/>
+        </g>
+
+        <text class="b8dL" x="44" y="80">1 · Columns</text>
+        <text class="b8dS" x="44" y="100">every published one,</text>
+        <text class="b8dS" x="44" y="116">declared yes or no</text>
+        <text class="b8dL" x="208" y="80">2 · Setting</text>
+        <text class="b8dS" x="208" y="100">level per column,</text>
+        <text class="b8dS" x="208" y="116">and k</text>
+        <text class="b8dW" x="376" y="80">3 · Results</text>
+        <text class="b8dV" x="376" y="100">k, l, t, suppressed,</text>
+        <text class="b8dV" x="376" y="116">precision, attack</text>
+        <text class="b8dL" x="536" y="80">4 · Break test</text>
+        <text class="b8dS" x="536" y="100">which column, and</text>
+        <text class="b8dS" x="536" y="116">what it did</text>
+        <text class="b8dL" x="700" y="80">5 · Sign-off</text>
+        <text class="b8dS" x="700" y="100">who, the route,</text>
+        <text class="b8dS" x="700" y="116">review date</text>
+
+        <text class="b8dN" x="30" y="236">A second engineer with the same rows and this page must get the same numbers. That is the test of the record.</text>
+      </svg>
+      <figcaption>🔍 Click to zoom - the record exists so the decision can be checked by someone who was not in the room</figcaption>
+    </figure>
+
+    <div data-pe="desk" id="b8-desk" data-preset="p1"></div>
+
+    <div class="steps">
+      <div class="step">
+        <p><strong>Step 1 · Walk the ladder.</strong> Click rungs 1 to 6 in order. For each, copy four numbers: single-row matches, expected re-identifications, rows suppressed and precision kept. Your numbers will match the ladder figure above, because the rows and the 1,000 people are fixed.</p>
+        <div class="prompt-box good"><span class="label">★ Step 1 · the ladder</span>rung   single   expected   suppressed   precision   l
+1      175      272.5      0%           100%        1
+2      ___      _____      ___          ____        _
+3      ___      _____      ___          ____        _
+4      0        16.7       2.23%        61%         1
+5      ___      _____      ___          ____        _
+6      ___      _____      ___          ____        _</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 2 · Switch the sensitive column.</strong> Change it from occupation to income band and re-read l and t on rungs 4 and 6. Income has two values, so l can never exceed 2; a bar of l at least 3 is impossible for it. Write which bar you would set for a two-valued column instead, and why t matters more there.</p>
+        <div class="prompt-box good"><span class="label">★ Step 2 · a two-valued sensitive column</span>rung 4, income:  l = __   t = ____
+rung 6, income:  l = __   t = ____
+my bar for income: ______________________________________</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 3 · Find your own setting.</strong> Start from rung 3 and move the column levels and k until the verdict turns green. Try to keep precision above 51%, rung 6's figure. There is more than one answer; record the one you would defend.</p>
+        <div class="prompt-box good"><span class="label">★ Step 3 · my setting</span>age: ________  sex: ______  race: ______  marital: ______
+education: ________  country: ________  k: ___
+k = __  l = __  t = ____  suppressed = ____%  precision = ___%
+single matches = __  expected = ____</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 4 · Press the break button.</strong> With your setting on screen, publish workclass too. Record what happens to single matches and revealed jobs. Then decide: do you generalise workclass and declare it, or drop it from the release?</p>
+        <div class="prompt-box good"><span class="label">★ Step 4 · the break</span>after break: single matches = __  expected = ____  jobs revealed = __
+decision: declare workclass at level ______ / drop it, because ____________
+rung 4 for comparison: 0 -&gt; 22 single matches, 16.7 -&gt; 73.5 expected</div>
+      </div>
+      <div class="step">
+        <p><strong>Step 5 · Write the record.</strong> Fill in the five fields for Lim Su-Ann. Name the route (three university partners under a data-sharing agreement), the people allowed to see the file, and the date the release is reviewed again. A release record without a review date assumes nothing else will ever be published about these people.</p>
+        <div class="prompt-box good"><span class="label">★ Step 5 · the release record</span>1 columns:   ____________________ (declared: yes / no for each)
+2 setting:   ____________________  k = __
+3 results:   k __  l __  t ____  suppressed ____%  precision ___%
+             attack: __ single, ____ expected, __ revealed, of 1,000
+4 break:     ____________ -&gt; ____________
+5 sign-off:  Lim Su-Ann, DPO · route: 3 partners under agreement
+             review by: __________ · re-run on the FINAL column list</div>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <p><strong>When the desk cannot get you there.</strong> If no setting clears the bar without destroying the analysis the partners need, the answer is a different tool, not a looser bar: release counts with calibrated noise (Engineer sessions 5 and 6), a synthetic file tested for copies (Engineer session 7), or access in a controlled enclave instead of a file (Leader session 2).</p>
+    </div>
+  </section>
+
+  <section class="section" id="exercise">
+    <div class="section-kicker">
+      <span class="klabel">Homework</span>
+      <h2>After the track</h2>
+      <span class="tag exercise">45 min</span>
+    </div>
+    <ol>
+      <li><strong>Re-run your record cold.</strong> Close the page, reopen it, and reproduce every number on your record from the setting alone. If one differs, your record is missing a field.</li>
+      <li><strong>Swap with a colleague.</strong> Give them only your record. Can they reproduce your numbers and spot a column you forgot to declare?</li>
+      <li><strong>Try the hardest outsider.</strong> Assume the outsider also knows hours worked. Which of your settings survive? Write the sentence that says what your release does not protect against.</li>
+      <li><strong>Take it to the leaders.</strong> Leader session 4 signs off a release from exactly this record. Send yours to whoever signs at your organisation, with the break test result at the top.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="quiz">
+    <div class="section-kicker">
+      <span class="klabel">Check yourself</span>
+      <h2>Three questions</h2>
+    </div>
+    <p>Clear all three and Engineer session 8 gets stamped in your passport.</p>
+
+    <div class="quiz-q" data-answer="2">
+      <p class="qtext">1 · On the real rows, removing names and IDs (rung 1) changes the unique share and the single-row matches by how much?</p>
+      <button class="qopt" type="button">A · It halves them</button>
+      <button class="qopt" type="button">B · It brings them to zero</button>
+      <button class="qopt" type="button">C · Not at all: 17.18% and 175 before and after, because names were never among the quasi-identifiers</button>
+      <button class="qopt" type="button">D · It raises them</button>
+      <p class="qwhy">Pseudonymisation removes direct identifiers. The re-identification runs through the quasi-identifiers, which are untouched.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="0">
+      <p class="qtext">2 · Rung 4 reaches k = 5 with 0 single-row matches. Why does the desk still not pass it?</p>
+      <button class="qopt" type="button">A · l is 1: at least one published class has a single occupation, so anyone placed in it has their job revealed</button>
+      <button class="qopt" type="button">B · k = 5 is illegal</button>
+      <button class="qopt" type="button">C · It suppresses too few rows</button>
+      <button class="qopt" type="button">D · The attack found 175 matches</button>
+      <p class="qwhy">k protects identity; l protects the value. The attack sample missed those 5 rows, the l property did not.</p>
+    </div>
+
+    <div class="quiz-q" data-answer="1">
+      <p class="qtext">3 · After the break button publishes workclass undeclared, the desk still prints k = 5. What went wrong?</p>
+      <button class="qopt" type="button">A · The k calculation has a bug</button>
+      <button class="qopt" type="button">B · k was computed on the declared columns only; the outsider joins on workclass too, and single-row matches go from 0 to 22</button>
+      <button class="qopt" type="button">C · Workclass is a direct identifier</button>
+      <button class="qopt" type="button">D · Nothing; k = 5 still holds for the published file</button>
+      <p class="qwhy">A property is only as complete as the column list it was computed on. Re-run the desk on the final column list.</p>
+    </div>
+
+    <p class="quiz-score"></p>
+  </section>
+
+  <section class="section" id="official">
+    <div class="section-kicker">
+      <span class="klabel">Sources covered</span>
+      <h2>What this session teaches, and where it came from</h2>
+    </div>
+    <div class="covered">
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">The six-rung ladder, the break result and every number on the desk</span><span class="note">Computed on UCI Adult (Becker and Kohavi 1996, CC BY 4.0) by the in-page engine; a Python reference prints the same 375 numbers</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">k-anonymity and record suppression; minimum k of 5 external, 3 internal</span><span class="note">Sweeney 2002, IJUFKS 10(5); PDPC, Guide to Basic Anonymisation (2022) and Advisory Guidelines on Selected Topics, revised 23 May 2024, para 3.9; read at source</span></div>
+      <div class="covered-row"><span class="status pill solid">✓</span><span class="name">l-diversity and t-closeness</span><span class="note">Machanavajjhala et al., ACM TKDD 1(1), 2007; Li, Li and Venkatasubramanian, ICDE 2007; definitions only</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Precision as a usefulness measure</span><span class="note">Sweeney's generalisation precision; taught as one heuristic among several</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">The Netflix Prize re-identification</span><span class="note">Narayanan and Shmatikov, "Robust De-anonymization of Large Sparse Datasets", IEEE Symposium on Security and Privacy 2008; read at source (arXiv version)</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">The desk's bar: k at least 10, l at least 3, under 5% suppressed</span><span class="note">A teaching threshold, not a standard; thresholds are contested</span></div>
+      <div class="covered-row"><span class="status pill light">◐</span><span class="name">Brightwater, Lim Su-Ann, Ravi Menon and the three-partner route</span><span class="note">Constructed and labelled</span></div>
+    </div>
+    <p class="mono" style="margin-top:14px">Every fact on this page, and its verification tier, is recorded in the course's source map.</p>
+  </section>
+
+  <section class="cheat" id="cheatsheet">
+    <h3>Engineer session 8 cheat sheet <span>· pin this</span></h3>
+    <div class="grid-2">
+      <div class="cheat-item"><b>Coarsen first</b><span>The biggest drop on the ladder is the first coarsening: 272.5 to 29.0 expected.</span></div>
+      <div class="cheat-item"><b>Two risks, one usefulness</b><span>Single matches, expected re-identifications, precision kept. Show all three.</span></div>
+      <div class="cheat-item"><b>The trap</b><span>Removing names changes no risk number. 175 single matches either way.</span></div>
+      <div class="cheat-item"><b>k is not l</b><span>k = 5 with l = 1 still reveals a job. Check both on every class.</span></div>
+      <div class="cheat-item"><b>The break</b><span>k is only true for declared columns. Re-run on the final list.</span></div>
+      <div class="cheat-item"><b>The record</b><span>Columns, setting, results, break, sign-off with a review date.</span></div>
+    </div>
+  </section>
+
+  <div class="callout next">
+    <span class="nx-pill">Next session</span>
+    <p>That is the Engineer track. Take your record to Leader session 4, where the people who sign a release read it: which thresholds they can defend, what the attack test proved, and what the record must say for someone to check the decision a year from now.</p>
+  </div>
+
+  <footer class="pagefoot">
+    <span>Engineer session 8 of 8 · learn-privacy-engineering-with-phoebe · by Phoebe Fu &nbsp;·&nbsp; 📚 <a href="https://phoebefu6.github.io/learn-with-phoebe/">Learn with Phoebe ↗</a></span>
+    <span><a href="b7-synthetic-data-and-its-leaks.html">← Prev: Synthetic data and its leaks</a> &nbsp;·&nbsp; <a href="../index.html">Course home</a></span>
+  </footer>
+
+</main>
+
+<script src="../assets/pe-data.js?v=1"></script>
+<script src="../assets/pe-engine.js?v=1"></script>
+<script src="../assets/pe-desk.js?v=1"></script>
+<script src="../assets/app.js?v=1"></script>
+</body>
+</html>
