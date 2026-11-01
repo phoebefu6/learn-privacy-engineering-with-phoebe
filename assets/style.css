@@ -338,7 +338,7 @@ table.clean td:first-child { font-weight: 600; }
   width: 1.7rem; height: 1.7rem;
   border-radius: 999px;
   background: var(--indigo-50);
-  color: var(--indigo);
+  color: var(--indigo-deep);
   font-weight: 700;
   font-size: .85rem;
   display: inline-flex;
